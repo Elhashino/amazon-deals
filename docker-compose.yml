@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: amazon_deals_postgres
+    environment:
+      POSTGRES_USER: deals
+      POSTGRES_PASSWORD: deals
+      POSTGRES_DB: deals
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

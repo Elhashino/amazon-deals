@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - UK Deals Alert{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-900 mb-6">Contact Us</h1>
+    
+    <div class="bg-white rounded-xl shadow-sm p-8">
+        <p class="text-gray-700 text-lg mb-8">
+            Have a question, suggestion, or found an amazing deal we missed? We'd love to hear from you!
+        </p>
+        
+        <form class="space-y-6" id="contact-form">
+            <div>
+                <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Your Name
+                </label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    required
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 transition"
+                    placeholder="John Smith"
+                >
+            </div>
+            
+            <div>
+                <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Your Email
+                </label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 transition"
+                    placeholder="john@example.com"
+                >
+            </div>
+            
+            <div>
+                <label for="subject" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Subject
+                </label>
+                <select 
+                    id="subject" 
+                    name="subject" 
+                    required
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 transition"
+                >
+                    <option value="">Select a topic...</option>
+                    <option value="feedback">General Feedback</option>
+                    <option value="deal">Submit a Deal</option>
+                    <option value="bug">Report a Bug</option>
+                    <option value="partnership">Partnership Inquiry</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="message" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Message
+                </label>
+                <textarea 
+                    id="message" 
+                    name="message" 
+                    rows="6" 
+                    required
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500 transition resize-none"
+                    placeholder="Tell us what's on your mind..."
+                ></textarea>
+            </div>
+            
+            <button 
+                type="submit"
+                class="w-full bg-orange-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-orange-700 transition shadow-md hover:shadow-lg"
+            >
+                Send Message
+            </button>
+        </form>
+        
+        <div class="mt-8 pt-8 border-t">
+            <h3 class="font-bold text-gray-900 mb-4">Other Ways to Reach Us</h3>
+            <div class="space-y-3 text-gray-700">
+                <p>
+                    <strong>Email:</strong> 
+                    <a href="mailto:hello@ukdealsalert.co.uk" class="text-orange-600 hover:text-orange-700">
+                        hello@ukdealsalert.co.uk
+                    </a>
+                </p>
+                <p>
+                    <strong>Response Time:</strong> We typically respond within 24-48 hours
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Contact form submission (placeholder - we'll add backend later)
+document.getElementById('contact-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('Thank you for your message! We\'ll get back to you soon.');
+    this.reset();
+    // TODO: Add actual backend submission
+});
+</script>
+{% endblock %}

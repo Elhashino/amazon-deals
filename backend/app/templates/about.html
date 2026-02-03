@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}About Us - UK Deals Alert{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">About UK Deals Alert</h1>
+    
+    <div class="prose prose-lg max-w-none">
+        <div class="bg-white rounded-xl shadow-sm p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">What We Do</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                We scan Amazon UK every single day to find the best deals and biggest discounts. 
+                Our automated system analyzes thousands of products to bring you only the deals worth your time.
+            </p>
+            <p class="text-gray-700 leading-relaxed">
+                No gimmicks, no fake deals - just genuine price drops verified by historical price data.
+            </p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">How We Find Deals</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                Our algorithm analyzes several key factors:
+            </p>
+            <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                <li><strong>Price History:</strong> We track 90-day price trends to ensure discounts are real</li>
+                <li><strong>Customer Reviews:</strong> Only products with 4+ star ratings and 100+ reviews</li>
+                <li><strong>Sales Rank:</strong> We monitor popularity to find trending products</li>
+                <li><strong>Deal Quality:</strong> Our scoring system ranks deals by value</li>
+            </ul>
+            <p class="text-gray-700 leading-relaxed mt-4">
+                Only deals meeting strict criteria make it to the site - typically 30% or more off with strong customer ratings.
+            </p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">How We Make Money</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                We're transparent about our business model:
+            </p>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                When you purchase through our Amazon links, we earn a small commission (typically 1-10% depending on category). 
+                This costs you nothing extra - you pay the same price as going directly to Amazon.
+            </p>
+            <p class="text-gray-700 leading-relaxed">
+                These commissions help us keep the site free and continue scanning for deals daily. 
+                We only recommend products we genuinely believe are good deals.
+            </p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Our Promise</h2>
+            <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                <li>Real deals verified by historical price data</li>
+                <li>Updated daily with fresh discounts</li>
+                <li>No fake reviews or manipulated ratings</li>
+                <li>Clear affiliate disclosure</li>
+                <li>Your privacy protected (no selling of personal data)</li>
+            </ul>
+        </div>
+        
+        <div class="bg-orange-50 border-2 border-orange-200 rounded-xl p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Questions or Feedback?</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                We'd love to hear from you! Whether you have suggestions, found a great deal we missed, 
+                or just want to say hello - get in touch.
+            </p>
+            <a href="/contact" class="inline-block bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition">
+                Contact Us
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

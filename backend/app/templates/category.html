@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category_name }} Deals - UK Deals Alert{% endblock %}
+
+{% block meta_description %}Best {{ category_name }} deals on Amazon UK. Up to 90% off. Updated daily with verified discounts.{% endblock %}
+
+{% block content %}
+<!-- Category Header -->
+<div class="mb-4">
+    <nav class="text-sm text-gray-500 mb-2">
+        <a href="/" class="hover:text-orange-600">Home</a>
+        <span class="mx-2">›</span>
+        <span class="text-gray-900 font-medium">{{ category_name }}</span>
+    </nav>
+    
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+        {{ category_name }} Deals 🔥
+    </h1>
+    <p class="text-xl text-gray-600">
+        Updated daily with the best discounts
+    </p>
+</div>
+
+<!-- Deals Count -->
+{% if deals %}
+<div class="mb-6">
+    <p class="text-gray-600">
+        <span class="font-bold text-orange-600">{{ deals|length }}</span> deals in {{ category_name }}
+    </p>
+</div>
+{% endif %}
+
+<!-- Deals Grid -->
+{% if deals %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    {% for deal in deals %}
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition duration-200 flex flex-col">
+        <!-- Product Image -->
+        <div class="relative bg-gray-50 p-4 h-40 flex items-center justify-center">
+            <img 
+                src="{{ deal.image_url if deal.image_url else '/static/images/placeholder.png' }}" 
+                alt="{{ deal.title }}"
+                class="max-h-full max-w-full object-contain"
+                onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23f0f0f0%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27 font-family=%27Arial%27 font-size=%2716%27%3ENo Image%3C/text%3E%3C/svg%3E'"
+            >
+            
+            <!-- Discount Badge -->
+            {% if deal.discount_pct_90d %}
+            <div class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full font-bold text-sm shadow-lg">
+                {{ (deal.discount_pct_90d * 100)|round|int }}% OFF
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Product Info -->
+        <div class="p-3 flex-grow flex flex-col">
+            <!-- Title -->
+            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm leading-tight">
+                {{ deal.title }}
+            </h3>
+            
+            <!-- Price -->
+            <div class="mb-2">
+                {% if deal.price_current %}
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-gray-900">
+                        £{{ "%.2f"|format(deal.price_current) }}
+                    </span>
+                    {% if deal.price_median_90d %}
+                    <span class="text-sm text-gray-500 line-through">
+                        £{{ "%.2f"|format(deal.price_median_90d) }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if deal.price_median_90d and deal.price_current %}
+                <p class="text-sm text-green-600 font-medium mt-1">
+                    Save £{{ "%.2f"|format(deal.price_median_90d - deal.price_current) }}
+                </p>
+                {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Rating & Reviews -->
+            {% if deal.rating and deal.review_count %}
+            <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                <span class="text-yellow-500">⭐</span>
+                <span class="font-medium">{{ "%.1f"|format(deal.rating * 10) }}</span>
+                <span class="text-gray-400">•</span>
+                <span>{{ "{:,}".format(deal.review_count) }} reviews</span>
+            </div>
+            {% endif %}
+            
+            <!-- Amazon Button -->
+            <a 
+                href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}"
+                target="_blank"
+                rel="noopener nofollow"
+                class="block w-full bg-orange-500 text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-orange-600 transition shadow-md hover:shadow-lg mt-auto"
+            >
+                View Deal on Amazon →
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-16">
+    <p class="text-2xl text-gray-500 mb-4">No deals available in this category right now.</p>
+    <a href="/" class="text-orange-600 hover:text-orange-700 font-semibold">
+        ← Browse all deals
+    </a>
+</div>
+{% endif %}
+
+<!-- Category CTA -->
+<div class="mt-16 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-8 md:p-12 text-center">
+    <h2 class="text-3xl font-bold text-gray-900 mb-4">Get {{ category_name }} Deal Alerts</h2>
+    <p class="text-xl text-gray-700 mb-6">Be first to know when prices drop in this category</p>
+    <button class="bg-orange-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-orange-700 transition shadow-lg">
+        Subscribe for Free
+    </button>
+</div>
+{% endblock %}
