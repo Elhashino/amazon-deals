@@ -61,7 +61,7 @@ async def home(request: Request):
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
             ORDER BY d.hot_score DESC NULLS LAST
-            LIMIT 500
+            LIMIT 50
         """)).mappings().all()
     
     return templates.TemplateResponse(
@@ -124,6 +124,43 @@ async def category(request: Request, slug: str):
             "deals": deals, 
             "category": slug,
             "category_name": category_name,
+            "affiliate_tag": AFFILIATE_TAG
+        }
+    )
+
+
+@app.get("/category/sunniest-savings", response_class=HTMLResponse)
+async def sunniest_savings(request: Request):
+    """Sunniest Savings - Best discounts across all categories"""
+    with engine.connect() as conn:
+        deals = conn.execute(text("""
+            SELECT 
+                p.title, 
+                p.image_url, 
+                p.asin, 
+                d.discount_pct_90d, 
+                d.price_current, 
+                d.price_median_90d, 
+                d.category_slug,
+                d.hot_score, 
+                d.rating, 
+                d.review_count,
+                d.score
+            FROM deals d
+            JOIN products p ON p.asin = d.asin
+            WHERE d.is_active = true
+            AND d.discount_pct_90d >= 30
+            ORDER BY d.discount_pct_90d DESC NULLS LAST
+            LIMIT 100
+        """)).mappings().all()
+    
+    return templates.TemplateResponse(
+        "category.html", 
+        {
+            "request": request, 
+            "deals": deals, 
+            "category": "sunniest-savings",
+            "category_name": "Sunniest Savings ☀️",
             "affiliate_tag": AFFILIATE_TAG
         }
     )
