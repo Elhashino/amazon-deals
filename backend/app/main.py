@@ -94,7 +94,7 @@ async def sunniest_savings(request: Request):
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
-            AND d.discount_pct_90d >= 30
+            AND d.discount_pct_90d >= 0.30
             ORDER BY d.discount_pct_90d DESC NULLS LAST
             LIMIT 100
         """)).mappings().all()
