@@ -94,7 +94,7 @@ async def sunniest_savings(request: Request):
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
-            AND d.discount_pct_90d >= 0.30
+            AND d.discount_pct_90d >= 30
             ORDER BY d.discount_pct_90d DESC NULLS LAST
             LIMIT 100
         """)).mappings().all()
@@ -188,6 +188,59 @@ async def contact(request: Request):
 async def health_check():
     """Health check endpoint for Railway"""
     return {"status": "healthy"}
+
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    """Generate XML sitemap for search engines"""
+    from fastapi.responses import Response
+    
+    categories = ["beauty", "pet", "health", "baby", "grocery", "sports", 
+                  "automotive", "home", "kitchen", "diy", "toys", "electrical", 
+                  "sunniest-savings"]
+    
+    sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    # Homepage
+    sitemap += '  <url>\n'
+    sitemap += '    <loc>https://sunblessedsavings.co.uk/</loc>\n'
+    sitemap += '    <changefreq>daily</changefreq>\n'
+    sitemap += '    <priority>1.0</priority>\n'
+    sitemap += '  </url>\n'
+    
+    # Categories
+    for cat in categories:
+        sitemap += '  <url>\n'
+        sitemap += f'    <loc>https://sunblessedsavings.co.uk/category/{cat}</loc>\n'
+        sitemap += '    <changefreq>daily</changefreq>\n'
+        sitemap += '    <priority>0.8</priority>\n'
+        sitemap += '  </url>\n'
+    
+    # Static pages
+    for page in ["about", "privacy", "contact"]:
+        sitemap += '  <url>\n'
+        sitemap += f'    <loc>https://sunblessedsavings.co.uk/{page}</loc>\n'
+        sitemap += '    <changefreq>monthly</changefreq>\n'
+        sitemap += '    <priority>0.5</priority>\n'
+        sitemap += '  </url>\n'
+    
+    sitemap += '</urlset>'
+    
+    return Response(content=sitemap, media_type="application/xml")
+
+
+@app.get("/robots.txt")
+async def robots():
+    """Robots.txt for search engines"""
+    from fastapi.responses import Response
+    
+    content = """User-agent: *
+Allow: /
+Sitemap: https://sunblessedsavings.co.uk/sitemap.xml
+"""
+    return Response(content=content, media_type="text/plain")
+
 
 
 if __name__ == "__main__":
