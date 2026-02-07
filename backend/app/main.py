@@ -124,8 +124,7 @@ async def category(request: Request, slug: str):
         "grocery": "Grocery & Gourmet",
         "sports": "Sports & Outdoors",
         "automotive": "Automotive",
-        "home": "Home & Garden",
-        "kitchen": "Kitchen & Dining",
+        "kitchen": "Home & Kitchen",
         "diy": "DIY & Tools",
         "toys": "Toys & Games",
         "electrical": "Electronics"
@@ -196,7 +195,7 @@ async def sitemap():
     from fastapi.responses import Response
     
     categories = ["beauty", "pet", "health", "baby", "grocery", "sports", 
-                  "automotive", "home", "kitchen", "diy", "toys", "electrical", 
+                  "automotive", "kitchen", "diy", "toys", "electrical", 
                   "sunniest-savings"]
     
     sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n'
