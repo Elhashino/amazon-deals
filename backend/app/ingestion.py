@@ -68,14 +68,14 @@ def categorize(product: dict, root_name: str) -> str:
         return "grocery"
     if "pet" in root:
         return "pet"
+    if "garden" in root or "lawn" in root or ("outdoor" in root and "sports" not in root):
+        return "garden"
     if "sports" in root or "outdoors" in root:
         return "sports"
     if "baby" in root:
         return "baby"
     if "automotive" in root:
         return "automotive"
-    if "garden" in root or "outdoor" in root or "lawn" in root:
-        return "garden"
 
     # Existing behaviour
     if "home" in root and "kitchen" in root:

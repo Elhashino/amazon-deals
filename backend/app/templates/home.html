@@ -55,53 +55,66 @@
 
 <!-- Page Title -->
 <div class="mb-6">
-    <h2 class="text-2xl font-bold text-gray-900 mb-2">All Sunniest Savings Deals</h2>
-    <p class="text-gray-600">Showing all deals with 30% or more discount - Updated daily</p>
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">Trending Deals by Category</h2>
+    <p class="text-gray-600">Top 3 most purchased deals in each category - Updated daily</p>
 </div>
 
-<!-- Deals Grid -->
-{% if deals and deals|length > 0 %}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    {% for deal in deals %}
-    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
-        <div class="relative">
-            <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-40 object-contain p-2">
-            <div class="absolute top-1 right-1 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}% OFF
-            </div>
+<!-- Deals by Category -->
+{% if categories_with_deals and categories_with_deals|length > 0 %}
+    {% for category in categories_with_deals %}
+    <div class="mb-10">
+        <!-- Category Header -->
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-gray-900">{{ category.name }}</h3>
+            <a href="/category/{{ category.slug }}" class="text-orange-600 hover:text-orange-700 font-semibold text-sm">
+                View all {{ category.name }} →
+            </a>
         </div>
         
-        <div class="p-3 flex flex-col flex-grow">
-            <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">{{ deal.title }}</h3>
-            
-            <div class="mb-2">
-                <div class="flex items-baseline gap-1">
-                    <span class="text-lg font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current or 0) }}</span>
-                    <span class="text-xs text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d or 0) }}</span>
+        <!-- Category Deals Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {% for deal in category.deals %}
+            <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
+                <div class="relative">
+                    <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-40 object-contain p-2">
+                    <div class="absolute top-1 right-1 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+                        {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}% OFF
+                    </div>
                 </div>
-                <div class="text-xs text-green-600 font-semibold">
-                    Save £{{ "%.2f"|format((deal.price_median_90d or 0) - (deal.price_current or 0)) }}
+                
+                <div class="p-3 flex flex-col flex-grow">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">{{ deal.title }}</h3>
+                    
+                    <div class="mb-2">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-lg font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current or 0) }}</span>
+                            <span class="text-xs text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d or 0) }}</span>
+                        </div>
+                        <div class="text-xs text-green-600 font-semibold">
+                            Save £{{ "%.2f"|format((deal.price_median_90d or 0) - (deal.price_current or 0)) }}
+                        </div>
+                    </div>
+                    
+                    {% if deal.rating %}
+                    <div class="flex items-center gap-1 mb-3 text-xs">
+                        <span class="text-yellow-500">⭐</span>
+                        <span class="font-semibold">{{ "%.1f"|format(deal.rating * 10) }}</span>
+                        <span class="text-gray-500">• {{ deal.review_count or 0 }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
+                       target="_blank" 
+                       rel="noopener sponsored"
+                       class="block w-full bg-black text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg mt-auto">
+                        View Deal on Amazon →
+                    </a>
                 </div>
             </div>
-            
-            {% if deal.rating %}
-            <div class="flex items-center gap-1 mb-3 text-xs">
-                <span class="text-yellow-500">⭐</span>
-                <span class="font-semibold">{{ "%.1f"|format(deal.rating * 10) }}</span>
-                <span class="text-gray-500">• {{ deal.review_count or 0 }}</span>
-            </div>
-            {% endif %}
-            
-            <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
-               target="_blank" 
-               rel="noopener sponsored"
-               class="block w-full bg-black text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg mt-auto">
-                View Deal on Amazon →
-            </a>
+            {% endfor %}
         </div>
     </div>
     {% endfor %}
-</div>
 {% else %}
 <div class="text-center py-12">
     <p class="text-gray-500 text-lg">No deals available right now. Check back soon!</p>

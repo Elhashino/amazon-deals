@@ -44,8 +44,8 @@ AFFILIATE_TAG = os.getenv("AMAZON_AFFILIATE_TAG", "yoursite-21")
 async def home(request: Request):
     """Homepage showing sunniest savings (30%+ discounts)"""
     with engine.connect() as conn:
-        # Get all sunniest deals
-        deals = conn.execute(text("""
+        # Get top 3 overall for featured section
+        featured_deals = conn.execute(text("""
             SELECT 
                 p.title, 
                 p.image_url, 
@@ -63,18 +63,62 @@ async def home(request: Request):
             WHERE d.is_active = true
             AND d.discount_pct_90d >= 0.30
             ORDER BY d.discount_pct_90d DESC NULLS LAST
-            LIMIT 100
+            LIMIT 3
         """)).mappings().all()
         
-        # Get top 3 for featured section
-        featured_deals = deals[:3] if len(deals) >= 3 else deals
+        # Get top 3 from each category ordered by hot_score (most purchased)
+        categories_with_deals = []
+        category_names_map = {
+            "beauty": "Beauty & Personal Care",
+            "pet": "Pet Supplies",
+            "health": "Health & Household",
+            "baby": "Baby Products",
+            "kitchen": "Home & Kitchen",
+            "garden": "Garden & Outdoors",
+            "diy": "DIY & Tools",
+            "toys": "Toys & Games",
+            "electrical": "Electronics",
+            "grocery": "Grocery & Gourmet",
+            "sports": "Sports & Outdoors",
+            "automotive": "Automotive",
+        }
+        
+        for slug, name in category_names_map.items():
+            category_deals = conn.execute(text("""
+                SELECT 
+                    p.title, 
+                    p.image_url, 
+                    p.asin, 
+                    d.discount_pct_90d, 
+                    d.price_current, 
+                    d.price_median_90d, 
+                    d.category_slug,
+                    d.hot_score, 
+                    d.rating, 
+                    d.review_count,
+                    d.score
+                FROM deals d
+                JOIN products p ON p.asin = d.asin
+                WHERE d.is_active = true
+                AND d.category_slug = :slug
+                AND d.discount_pct_90d >= 0.30
+                ORDER BY d.hot_score DESC NULLS LAST
+                LIMIT 3
+            """), {"slug": slug}).mappings().all()
+            
+            if category_deals:  # Only add if category has deals
+                categories_with_deals.append({
+                    "slug": slug,
+                    "name": name,
+                    "deals": category_deals
+                })
     
     return templates.TemplateResponse(
         "home.html", 
         {
             "request": request, 
-            "deals": deals,
             "featured_deals": featured_deals,
+            "categories_with_deals": categories_with_deals,
             "affiliate_tag": AFFILIATE_TAG
         }
     )
