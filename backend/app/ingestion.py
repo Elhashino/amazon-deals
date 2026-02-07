@@ -45,6 +45,7 @@ def resolve_root_category_ids(roots: dict[str, dict]) -> dict[str, int]:
         "sports": ["sports"],
         "baby": ["baby"],
         "automotive": ["automotive"],
+        "garden": ["garden", "outdoor"],
     }
 
     out: dict[str, int] = {}
@@ -73,6 +74,8 @@ def categorize(product: dict, root_name: str) -> str:
         return "baby"
     if "automotive" in root:
         return "automotive"
+    if "garden" in root or "outdoor" in root or "lawn" in root:
+        return "garden"
 
     # Existing behaviour
     if "home" in root and "kitchen" in root:
@@ -110,6 +113,7 @@ def min_discount_for_category(cat: str) -> float:
         "sports": settings.MIN_DISCOUNT_SPORTS,
         "baby": settings.MIN_DISCOUNT_BABY,
         "automotive": settings.MIN_DISCOUNT_AUTOMOTIVE,
+        "garden": settings.MIN_DISCOUNT_HOME,  # Use same threshold as home
     }.get(cat, settings.MIN_DISCOUNT_HOME)
 
 
