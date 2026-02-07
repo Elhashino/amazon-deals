@@ -1,153 +1,115 @@
 {% extends "base.html" %}
 
-{% block content %}
-<!-- Hero Section -->
-<div class="mb-4">
-    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-        Today's Top Amazon Deals 🔥
-    </h1>
-    <p class="text-xl text-gray-600">
-        Updated daily • Up to 97% off • Verified discounts
-    </p>
-</div>
+{% block title %}Sunblessed Savings - Best Amazon UK Deals Daily (30%+ Off){% endblock %}
 
-<!-- Email Signup -->
-<div class="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-4 md:p-6 mb-6 shadow-sm">
-    <div class="flex items-start gap-4">
-        <div class="text-4xl">📧</div>
-        <div class="flex-grow">
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">Never Miss a Deal</h2>
-            <p class="text-gray-700 mb-4">Get daily alerts with the best discounts. Free, no spam.</p>
-            <form class="flex flex-col sm:flex-row gap-3" action="#" method="post" id="email-form">
-                <input 
-                    type="email" 
-                    name="email"
-                    placeholder="your@email.com" 
-                    required
-                    class="flex-1 px-4 py-3 border-2 border-orange-300 rounded-lg focus:outline-none focus:border-orange-500 text-lg"
-                >
-                <button 
-                    type="submit"
-                    class="bg-orange-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-orange-700 transition shadow-md hover:shadow-lg"
-                >
-                    Subscribe Free
-                </button>
-            </form>
-            <p class="text-sm text-gray-500 mt-2">Join 1,000+ deal hunters. Unsubscribe anytime.</p>
+{% block content %}
+<!-- Hero Section with Top 3 Sunniest Deals -->
+<div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl p-6 mb-8 border-2 border-orange-200">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="text-5xl">☀️</div>
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Sunniest Deals Of The Day</h1>
+            <p class="text-gray-600">Today's top 3 biggest discounts - Up to {{ "%.0f"|format(featured_deals[0].discount_pct_90d * 100) }}% off!</p>
         </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for deal in featured_deals %}
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden transform hover:scale-105 transition border-2 border-orange-300">
+            <div class="relative">
+                <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-48 object-contain p-4 bg-white">
+                <div class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full font-bold text-lg shadow-lg">
+                    {{ "%.0f"|format(deal.discount_pct_90d * 100) }}% OFF
+                </div>
+            </div>
+            <div class="p-4">
+                <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{{ deal.title }}</h3>
+                <div class="flex items-baseline gap-2 mb-3">
+                    <span class="text-2xl font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current) }}</span>
+                    <span class="text-sm text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d) }}</span>
+                </div>
+                <div class="flex items-center gap-1 mb-3">
+                    <span class="text-yellow-500">⭐</span>
+                    <span class="text-sm font-semibold">{{ "%.1f"|format(deal.rating) }}</span>
+                    <span class="text-xs text-gray-500">({{ "{:,}".format(deal.review_count) }} reviews)</span>
+                </div>
+                <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
+                   target="_blank" 
+                   rel="noopener sponsored"
+                   class="block w-full bg-black text-white text-center py-3 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg">
+                    View Deal on Amazon →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
-<!-- Deals Count -->
-{% if deals %}
+<!-- Page Title -->
 <div class="mb-6">
-    <p class="text-gray-600">
-        <span class="font-bold text-orange-600">{{ deals|length }}</span> hot deals found today
-    </p>
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">All Sunniest Savings Deals</h2>
+    <p class="text-gray-600">Showing all deals with 30% or more discount - Updated daily</p>
 </div>
-{% endif %}
 
-<!-- Deals Grid - 4 columns on large screens -->
-{% if deals %}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Deals Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
     {% for deal in deals %}
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition duration-200 flex flex-col">
-        <!-- Product Image -->
-        <div class="relative bg-gray-50 p-4 h-40 flex items-center justify-center">
-            <img 
-                src="{{ deal.image_url if deal.image_url else '/static/images/placeholder.png' }}" 
-                alt="{{ deal.title }}"
-                class="max-h-full max-w-full object-contain"
-                onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23f0f0f0%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27 font-family=%27Arial%27 font-size=%2716%27%3ENo Image%3C/text%3E%3C/svg%3E'"
-            >
-            
-            <!-- Discount Badge -->
-            {% if deal.discount_pct_90d %}
-            <div class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full font-bold text-sm shadow-lg">
-                {{ (deal.discount_pct_90d * 100)|round|int }}% OFF
+    <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
+        <div class="relative">
+            <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-40 object-contain p-2">
+            <div class="absolute top-1 right-1 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+                {{ "%.0f"|format(deal.discount_pct_90d * 100) }}% OFF
             </div>
-            {% endif %}
         </div>
         
-        <!-- Product Info -->
-        <div class="p-3 flex-grow flex flex-col">
-            <!-- Title -->
-            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm leading-tight">
-                {{ deal.title }}
-            </h3>
+        <div class="p-3 flex flex-col flex-grow">
+            <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">{{ deal.title }}</h3>
             
-            <!-- Price -->
             <div class="mb-2">
-                {% if deal.price_current %}
-                <div class="flex items-baseline gap-2">
-                    <span class="text-2xl font-bold text-gray-900">
-                        £{{ "%.2f"|format(deal.price_current) }}
-                    </span>
-                    {% if deal.price_median_90d %}
-                    <span class="text-sm text-gray-500 line-through">
-                        £{{ "%.2f"|format(deal.price_median_90d) }}
-                    </span>
-                    {% endif %}
+                <div class="flex items-baseline gap-1">
+                    <span class="text-lg font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current) }}</span>
+                    <span class="text-xs text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d) }}</span>
                 </div>
-                {% if deal.price_median_90d and deal.price_current %}
-                <p class="text-sm text-green-600 font-medium mt-1">
+                <div class="text-xs text-green-600 font-semibold">
                     Save £{{ "%.2f"|format(deal.price_median_90d - deal.price_current) }}
-                </p>
-                {% endif %}
-                {% endif %}
+                </div>
             </div>
             
-            <!-- Rating & Reviews -->
-            {% if deal.rating and deal.review_count %}
-            <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+            <div class="flex items-center gap-1 mb-3 text-xs">
                 <span class="text-yellow-500">⭐</span>
-                <span class="font-medium">{{ "%.1f"|format(deal.rating * 10) }}</span>
-                <span class="text-gray-400">•</span>
-                <span>{{ "{:,}".format(deal.review_count) }} reviews</span>
-            </div>
-            {% endif %}
-            
-            <!-- Category Tag -->
-            <div class="mb-4">
-                <span class="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                    {{ deal.category_slug|title }}
-                </span>
+                <span class="font-semibold">{{ "%.1f"|format(deal.rating) }}</span>
+                <span class="text-gray-500">• {{ deal.review_count }}</span>
             </div>
             
-            <!-- Amazon Button -->
-            <a 
-                href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}"
-                target="_blank"
-                rel="noopener nofollow"
-                class="block w-full bg-black text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg mt-auto"
-            >
+            <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
+               target="_blank" 
+               rel="noopener sponsored"
+               class="block w-full bg-black text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg mt-auto">
                 View Deal on Amazon →
             </a>
         </div>
     </div>
     {% endfor %}
 </div>
-{% else %}
-<div class="text-center py-16">
-    <p class="text-2xl text-gray-500">No deals available right now. Check back soon!</p>
-</div>
-{% endif %}
 
-<!-- Bottom CTA -->
-<div class="mt-16 bg-orange-600 text-white rounded-xl p-8 md:p-12 text-center">
-    <h2 class="text-3xl font-bold mb-4">Don't Miss Tomorrow's Deals</h2>
-    <p class="text-xl mb-6 text-orange-100">Get the best discounts delivered to your inbox every morning</p>
-    <button class="bg-white text-orange-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-orange-50 transition shadow-lg">
-        Subscribe for Free
-    </button>
+<!-- Compact Email Subscription -->
+<div class="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-2xl mx-auto">
+    <div class="flex items-start gap-3">
+        <div class="text-3xl">📧</div>
+        <div class="flex-grow">
+            <h3 class="font-bold text-gray-900 text-lg mb-1">Never Miss a Deal</h3>
+            <p class="text-gray-600 text-sm mb-3">Get daily alerts with the best discounts. Free, no spam.</p>
+            
+            <form class="flex gap-2">
+                <input type="email" placeholder="your@email.com" 
+                       class="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 text-sm">
+                <button type="submit" 
+                        class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-orange-700 transition whitespace-nowrap">
+                    Subscribe Free
+                </button>
+            </form>
+            <p class="text-xs text-gray-500 mt-2">Join 1,000+ deal hunters. Unsubscribe anytime.</p>
+        </div>
+    </div>
 </div>
-
-<script>
-// Email form submission (placeholder - we'll add backend later)
-document.getElementById('email-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    alert('Thank you for subscribing! Feature coming soon.');
-    // TODO: Add actual backend submission
-});
-</script>
 {% endblock %}

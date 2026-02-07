@@ -42,8 +42,9 @@ AFFILIATE_TAG = os.getenv("AMAZON_AFFILIATE_TAG", "yoursite-21")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Homepage showing top deals"""
+    """Homepage showing sunniest savings (30%+ discounts)"""
     with engine.connect() as conn:
+        # Get all sunniest deals
         deals = conn.execute(text("""
             SELECT 
                 p.title, 
@@ -60,15 +61,20 @@ async def home(request: Request):
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
-            ORDER BY d.hot_score DESC NULLS LAST
-            LIMIT 500
+            AND d.discount_pct_90d >= 0.30
+            ORDER BY d.discount_pct_90d DESC NULLS LAST
+            LIMIT 100
         """)).mappings().all()
+        
+        # Get top 3 for featured section
+        featured_deals = deals[:3] if len(deals) >= 3 else deals
     
     return templates.TemplateResponse(
         "home.html", 
         {
             "request": request, 
             "deals": deals,
+            "featured_deals": featured_deals,
             "affiliate_tag": AFFILIATE_TAG
         }
     )
