@@ -6,14 +6,14 @@
 
 {% block content %}
 <!-- Category Header -->
-<div class="mb-4">
-    <nav class="text-sm text-gray-500 mb-2">
+<div class="mb-8">
+    <nav class="text-sm text-gray-500 mb-4">
         <a href="/" class="hover:text-orange-600">Home</a>
         <span class="mx-2">›</span>
         <span class="text-gray-900 font-medium">{{ category_name }}</span>
     </nav>
     
-    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
         {{ category_name }} Deals 🔥
     </h1>
     <p class="text-xl text-gray-600">
@@ -32,11 +32,11 @@
 
 <!-- Deals Grid -->
 {% if deals %}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for deal in deals %}
     <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition duration-200 flex flex-col">
         <!-- Product Image -->
-        <div class="relative bg-gray-50 p-4 h-40 flex items-center justify-center">
+        <div class="relative bg-gray-50 p-4 h-56 flex items-center justify-center">
             <img 
                 src="{{ deal.image_url if deal.image_url else '/static/images/placeholder.png' }}" 
                 alt="{{ deal.title }}"
@@ -53,14 +53,14 @@
         </div>
         
         <!-- Product Info -->
-        <div class="p-3 flex-grow flex flex-col">
+        <div class="p-4 flex-grow flex flex-col">
             <!-- Title -->
-            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm leading-tight">
+            <h3 class="font-semibold text-gray-900 mb-3 line-clamp-3 text-sm leading-tight">
                 {{ deal.title }}
             </h3>
             
             <!-- Price -->
-            <div class="mb-2">
+            <div class="mb-3">
                 {% if deal.price_current %}
                 <div class="flex items-baseline gap-2">
                     <span class="text-2xl font-bold text-gray-900">
@@ -82,9 +82,9 @@
             
             <!-- Rating & Reviews -->
             {% if deal.rating and deal.review_count %}
-            <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+            <div class="flex items-center gap-2 text-sm text-gray-600 mb-4">
                 <span class="text-yellow-500">⭐</span>
-                <span class="font-medium">{{ "%.1f"|format(deal.rating * 10) }}</span>
+                <span class="font-medium">{{ "%.1f"|format(deal.rating) }}</span>
                 <span class="text-gray-400">•</span>
                 <span>{{ "{:,}".format(deal.review_count) }} reviews</span>
             </div>
@@ -95,7 +95,7 @@
                 href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}"
                 target="_blank"
                 rel="noopener nofollow"
-                class="block w-full bg-black text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg mt-auto"
+                class="block w-full bg-black text-white text-center py-3 rounded-lg font-bold hover:bg-gray-800 transition shadow-md hover:shadow-lg mt-auto"
             >
                 View Deal on Amazon →
             </a>
