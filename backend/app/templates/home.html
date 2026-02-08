@@ -3,17 +3,14 @@
 {% block title %}Sunblessed Savings - Best Amazon UK Deals Daily (30%+ Off){% endblock %}
 
 {% block content %}
-<!-- Hero Section with Wave Logo as Background -->
-<div class="relative mb-12 rounded-2xl overflow-hidden min-h-[500px] flex items-center">
-    <!-- Wave Logo as Main Background - Large and Centered -->
-    <div class="absolute inset-0 flex items-center justify-center">
-        <img src="/static/images/logo.png" alt="" class="w-full max-w-2xl h-auto object-contain opacity-25">
+<!-- Hero Section - Just Wave Logo, No Background Box -->
+<div class="relative mb-12 min-h-[500px] flex items-center">
+    <!-- Pure Wave Logo - Transparent Background -->
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <img src="/static/images/logo.png" alt="" class="w-full max-w-2xl h-auto object-contain opacity-30">
     </div>
     
-    <!-- Subtle Gradient Overlay -->
-    <div class="absolute inset-0 bg-gradient-to-b from-orange-50/60 via-yellow-50/60 to-orange-100/60"></div>
-    
-    <!-- Hero Content -->
+    <!-- Hero Content - No Background -->
     <div class="relative w-full py-16 px-6">
         <div class="max-w-4xl mx-auto text-center">
             <!-- Main Heading -->
@@ -28,7 +25,7 @@
                 and never miss out.
             </p>
             
-            <!-- Email Signup Form -->
+            <!-- Email Signup Form - White Box Only -->
             <div class="bg-white rounded-xl shadow-lg p-6 mb-6 max-w-2xl mx-auto">
                 <form class="flex flex-col sm:flex-row gap-3">
                     <input 
