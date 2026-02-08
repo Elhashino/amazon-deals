@@ -10,7 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+    <link rel="icon" href="/static/images/logo.png" type="image/png">
     
     {% block extra_head %}{% endblock %}
 </head>
@@ -26,7 +26,10 @@
                 
                 <!-- Desktop Navigation -->
 <div class="hidden md:flex space-x-4 text-sm">
-    <a href="/category/sunniest-savings" class="text-gray-600 hover:text-orange-600 font-medium transition">☀️ All Deals</a>
+    <a href="/category/sunniest-savings" class="text-gray-600 hover:text-orange-600 font-medium transition flex items-center gap-1">
+        <img src="/static/images/sun-icon.png" alt="" class="w-4 h-4 inline-block">
+        All Deals
+    </a>
     <a href="/category/beauty" class="text-gray-600 hover:text-orange-600 font-medium transition">Beauty</a>
     <a href="/category/pet" class="text-gray-600 hover:text-orange-600 font-medium transition">Pet</a>
     <a href="/category/health" class="text-gray-600 hover:text-orange-600 font-medium transition">Health</a>
@@ -52,7 +55,10 @@
             
             <!-- Mobile Navigation -->
 <div id="mobile-menu" class="hidden md:hidden mt-4 space-y-2">
-    <a href="/category/sunniest-savings" class="block text-gray-600 hover:text-orange-600 py-2">☀️ All Deals</a>
+    <a href="/category/sunniest-savings" class="block text-gray-600 hover:text-orange-600 py-2 flex items-center gap-2">
+        <img src="/static/images/sun-icon.png" alt="" class="w-4 h-4 inline-block">
+        All Deals
+    </a>
     <a href="/category/beauty" class="block text-gray-600 hover:text-orange-600 py-2">Beauty</a>
     <a href="/category/pet" class="block text-gray-600 hover:text-orange-600 py-2">Pet</a>
     <a href="/category/health" class="block text-gray-600 hover:text-orange-600 py-2">Health</a>
