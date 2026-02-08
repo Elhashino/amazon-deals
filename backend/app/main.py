@@ -179,7 +179,7 @@ async def sunniest_savings(request: Request):
             "deals": deals,
             "featured_deals": featured_deals,
             "category": "sunniest-savings",
-            "category_name": "Sunniest Savings ☀️",
+            "category_name": "Sunniest Savings",
             "affiliate_tag": AFFILIATE_TAG
         }
     )
