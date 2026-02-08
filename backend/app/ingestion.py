@@ -281,7 +281,7 @@ def run_ingestion_once():
                             Deal.category_slug == cat_slug,
                             Deal.is_active == True,
                         )
-                    ).scalar_one_or_none()
+                    ).scalars().first()
 
                     if existing:
                         # CRITICAL FIX: Use run_started_at for published_at to track this run
@@ -331,6 +331,21 @@ def run_ingestion_once():
                     deals_processed += 1
 
         print(f"\nProcessed {deals_processed} deals in this run")
+
+        # CRITICAL FIX: Remove any duplicate deals (same ASIN + category_slug)
+        # Keep only the most recently ingested one
+        print("Removing duplicate deals...")
+        dedup_result = db.execute(text("""
+            DELETE FROM deals a USING deals b
+            WHERE a.id > b.id
+            AND a.asin = b.asin
+            AND a.category_slug = b.category_slug
+            AND a.is_active = true
+            AND b.is_active = true
+        """))
+        dedup_count = dedup_result.rowcount
+        if dedup_count > 0:
+            print(f"Removed {dedup_count} duplicate deals")
 
         # CRITICAL FIX: After a successful ingestion, delete deals from PREVIOUS runs
         # We use published_at (which we control) instead of ingested_at (which has unique timestamps from trigger)
