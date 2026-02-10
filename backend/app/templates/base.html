@@ -29,32 +29,35 @@
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            opacity: 0.08; /* Very subtle - increase to 0.15 if you want it more visible */
+            opacity: 0.20; /* Increased to 20% for better visibility */
             z-index: -1;
             pointer-events: none;
         }
         
-        /* ALTERNATIVE STYLES - Uncomment to try different looks:
+        /* ALTERNATIVE OPACITY LEVELS - Change the number above:
         
-        OPTION 1: More visible background
-        body::before {
-            opacity: 0.15;
-        }
+        Subtle:     opacity: 0.10;
+        Light:      opacity: 0.15;
+        Medium:     opacity: 0.20;  (CURRENT)
+        Visible:    opacity: 0.25;
+        Strong:     opacity: 0.30;
+        Very Bold:  opacity: 0.40;
         
-        OPTION 2: Tiled pattern instead of stretched
+        ALTERNATIVE STYLES:
+        
+        OPTION 1: Tiled pattern instead of stretched
         body::before {
             background-size: 400px 400px;
             background-repeat: repeat;
         }
         
-        OPTION 3: Bottom-right corner watermark
+        OPTION 2: Bottom-right corner watermark
         body::before {
             background-size: 50%;
             background-position: bottom right;
-            opacity: 0.05;
         }
         
-        OPTION 4: Scrolling background (not fixed)
+        OPTION 3: Scrolling background (not fixed)
         body::before {
             position: absolute;
             background-attachment: scroll;
