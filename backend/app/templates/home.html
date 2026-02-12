@@ -5,9 +5,9 @@
 {% block content %}
 <!-- Hero Section - Just Wave Logo, No Background Box -->
 <div class="relative mb-6 md:mb-12 min-h-[300px] md:min-h-[500px] flex items-center">
-    <!-- Pure Wave Logo - More Visible -->
-    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <img src="/static/images/logo.png" alt="" class="w-full max-w-4xl h-auto object-contain opacity-40">
+    <!-- Pure Wave Logo - Positioned behind heading text, not email box -->
+    <div class="absolute top-0 left-0 right-0 flex justify-center pointer-events-none" style="height: 55%;">
+        <img src="/static/images/logo.png" alt="" class="h-full w-auto object-contain opacity-60">
     </div>
     
     <!-- Hero Content - No Background -->
@@ -77,35 +77,27 @@
     </div>
     
     {% if featured_deals and featured_deals|length > 0 %}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+    <div class="grid grid-cols-3 gap-2 md:gap-6">
         {% for deal in featured_deals %}
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden transform hover:scale-105 transition border-2 border-orange-300">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden transition border-2 border-orange-300 flex flex-col">
             <div class="relative">
-                <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-48 object-contain p-4 bg-white">
-                <div class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full font-bold text-lg shadow-lg">
-                    {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}% OFF
+                <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-20 md:h-48 object-contain p-1 md:p-4 bg-white">
+                <div class="absolute top-1 right-1 bg-red-600 text-white px-1 md:px-3 py-0.5 md:py-1 rounded-full font-bold text-xs md:text-lg shadow-lg">
+                    {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}%
                 </div>
             </div>
-            <div class="p-4">
-                <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{{ deal.title }}</h3>
-                <div class="flex items-baseline gap-2 mb-3">
-                    <span class="text-2xl font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current or 0) }}</span>
-                    <span class="text-sm text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d or 0) }}</span>
+            <div class="p-1.5 md:p-4 flex flex-col flex-grow">
+                <h3 class="font-semibold text-gray-900 text-xs mb-1 line-clamp-2 leading-tight">{{ deal.title }}</h3>
+                <div class="flex flex-col mb-1 md:mb-3">
+                    <span class="text-sm md:text-2xl font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current or 0) }}</span>
+                    <span class="text-xs text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d or 0) }}</span>
                 </div>
-                {% if deal.rating %}
-                <div class="flex items-center gap-1 mb-3">
-                    <span class="text-yellow-500">⭐</span>
-                    <span class="text-sm font-semibold">{{ "%.1f"|format(deal.rating * 10) }}</span>
-                    <span class="text-xs text-gray-500">({{ "{:,}".format(deal.review_count or 0) }} reviews)</span>
-                </div>
-                {% endif %}
                 <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
                    target="_blank" 
                    rel="noopener sponsored"
-                   class="block w-full bg-black text-white text-center py-3 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg">
-                    View Deal on Amazon →
+                   class="block w-full bg-black text-white text-center py-1.5 md:py-3 rounded-lg font-bold text-xs md:text-sm hover:bg-gray-800 transition mt-auto">
+                    View →
                 </a>
-                <p class="text-xs text-gray-400 text-center mt-2">Prices update daily. Amazon's price may differ at time of purchase.</p>
             </div>
         </div>
         {% endfor %}
@@ -132,44 +124,35 @@
         </div>
         
         <!-- Category Deals Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-3 gap-2 md:gap-4">
             {% for deal in category.deals %}
             <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
                 <div class="relative">
-                    <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-40 object-contain p-2">
-                    <div class="absolute top-1 right-1 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}% OFF
+                    <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-20 md:h-40 object-contain p-1 md:p-2">
+                    <div class="absolute top-1 right-1 bg-red-600 text-white px-1 md:px-2 py-0.5 md:py-1 rounded-full text-xs font-bold">
+                        {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}%
                     </div>
                 </div>
                 
-                <div class="p-3 flex flex-col flex-grow">
-                    <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">{{ deal.title }}</h3>
+                <div class="p-1.5 md:p-3 flex flex-col flex-grow">
+                    <h3 class="text-xs font-semibold text-gray-900 mb-1 line-clamp-2 leading-tight">{{ deal.title }}</h3>
                     
-                    <div class="mb-2">
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-lg font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current or 0) }}</span>
+                    <div class="mb-1 md:mb-2">
+                        <div class="flex flex-col md:flex-row md:items-baseline md:gap-1">
+                            <span class="text-sm md:text-lg font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current or 0) }}</span>
                             <span class="text-xs text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d or 0) }}</span>
                         </div>
-                        <div class="text-xs text-green-600 font-semibold">
+                        <div class="text-xs text-green-600 font-semibold hidden md:block">
                             Save £{{ "%.2f"|format((deal.price_median_90d or 0) - (deal.price_current or 0)) }}
                         </div>
                     </div>
                     
-                    {% if deal.rating %}
-                    <div class="flex items-center gap-1 mb-3 text-xs">
-                        <span class="text-yellow-500">⭐</span>
-                        <span class="font-semibold">{{ "%.1f"|format(deal.rating * 10) }}</span>
-                        <span class="text-gray-500">• {{ deal.review_count or 0 }}</span>
-                    </div>
-                    {% endif %}
-                    
                     <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
                        target="_blank" 
                        rel="noopener sponsored"
-                       class="block w-full bg-black text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-md hover:shadow-lg mt-auto">
-                        View Deal on Amazon →
+                       class="block w-full bg-black text-white text-center py-1.5 md:py-2 rounded-lg font-bold text-xs hover:bg-gray-800 transition mt-auto">
+                        View →
                     </a>
-                    <p class="text-xs text-gray-400 text-center mt-1">Price may vary on Amazon</p>
                 </div>
             </div>
             {% endfor %}
