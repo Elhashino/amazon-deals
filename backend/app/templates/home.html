@@ -5,9 +5,16 @@
 {% block content %}
 <!-- Hero Section - Just Wave Logo, No Background Box -->
 <div class="relative mb-6 md:mb-12 min-h-[300px] md:min-h-[500px] flex items-center">
-    <!-- Pure Wave Logo - Positioned behind heading text, not email box -->
-    <div class="absolute top-0 left-0 right-0 flex justify-center pointer-events-none" style="height: 55%;">
-        <img src="/static/images/logo.png" alt="" class="h-full w-auto object-contain opacity-60">
+    <!-- Pure Wave Logo - Behind heading text on mobile, centred on desktop -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+        <img src="/static/images/logo.png" alt="" class="
+            hidden md:block
+            absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+            w-full max-w-4xl h-auto object-contain opacity-60">
+        <img src="/static/images/logo.png" alt="" class="
+            md:hidden
+            absolute -top-6 left-1/2 -translate-x-1/2
+            w-full max-w-xs h-auto object-contain opacity-60">
     </div>
     
     <!-- Hero Content - No Background -->
