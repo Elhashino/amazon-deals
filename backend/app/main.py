@@ -270,6 +270,12 @@ async def about(request: Request):
     return templates.TemplateResponse("about.html", {"request": request})
 
 
+@app.get("/affiliate-disclosure", response_class=HTMLResponse)
+async def affiliate_disclosure(request: Request):
+    """Affiliate Disclosure page"""
+    return templates.TemplateResponse("affiliate-disclosure.html", {"request": request})
+
+
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy(request: Request):
     """Privacy policy page"""
