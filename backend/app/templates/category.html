@@ -48,10 +48,10 @@
                     <span class="text-xs text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d or 0) }}</span>
                 </div>
                 {% if deal.rating %}
-                <div class="hidden md:flex items-center gap-1 mb-3">
-                    <span class="text-yellow-500">⭐</span>
-                    <span class="text-sm font-semibold">{{ "%.1f"|format(deal.rating * 10) }}</span>
-                    <span class="text-xs text-gray-500">({{ "{:,}".format(deal.review_count or 0) }} reviews)</span>
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-yellow-500 text-xs">⭐</span>
+                    <span class="text-xs font-semibold">{{ "%.1f"|format(deal.rating * 10) }}</span>
+                    <span class="text-xs text-gray-500">({{ deal.review_count or 0 }})</span>
                 </div>
                 {% endif %}
                 <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
@@ -60,10 +60,13 @@
                    class="block w-full bg-black text-white text-center py-1.5 md:py-3 rounded-lg font-bold text-xs md:text-sm hover:bg-gray-800 transition mt-auto">
                     View Deal on Amazon →
                 </a>
-                <p class="text-xs text-gray-400 text-center mt-1">Prices update daily. Amazon's price may differ at time of purchase.</p>
             </div>
         </div>
         {% endfor %}
+    </div>
+    <!-- Price Notice Box -->
+    <div class="mt-4 bg-white border-2 border-orange-200 rounded-xl p-3 text-center">
+        <p class="text-sm text-gray-600">⭐ We update prices daily; Amazon's live price at purchase may be different ⭐</p>
     </div>
 </div>
 {% endif %}
@@ -127,13 +130,12 @@
                 {% endif %}
             </div>
             
-            <!-- Rating - hidden on mobile to save space -->
+            <!-- Rating - visible on all screens -->
             {% if deal.rating and deal.review_count %}
-            <div class="hidden md:flex items-center gap-2 text-sm text-gray-600 mb-4">
+            <div class="flex items-center gap-1 text-xs text-gray-600 mb-1">
                 <span class="text-yellow-500">⭐</span>
                 <span class="font-medium">{{ "%.1f"|format(deal.rating * 10) }}</span>
-                <span class="text-gray-400">•</span>
-                <span>{{ "{:,}".format(deal.review_count) }} reviews</span>
+                <span class="text-gray-400">({{ deal.review_count }})</span>
             </div>
             {% endif %}
             
@@ -146,10 +148,13 @@
             >
                 View Deal on Amazon →
             </a>
-            <p class="text-xs text-gray-400 text-center mt-1">Prices update daily. Amazon's price may differ at time of purchase.</p>
         </div>
     </div>
     {% endfor %}
+</div>
+<!-- Price Notice Box -->
+<div class="mt-4 mb-8 bg-white border-2 border-orange-200 rounded-xl p-3 text-center">
+    <p class="text-sm text-gray-600">⭐ We update prices daily; Amazon's live price at purchase may be different ⭐</p>
 </div>
 {% else %}
 <div class="text-center py-16">

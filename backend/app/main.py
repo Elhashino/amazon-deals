@@ -69,17 +69,17 @@ async def home(request: Request):
         # Get top 3 from each category ordered by hot_score (most purchased)
         categories_with_deals = []
         category_names_map = {
-            "beauty": "Beauty & Personal Care",
-            "pet": "Pet Supplies",
-            "health": "Health & Household",
-            "baby": "Baby Products",
-            "kitchen": "Home & Kitchen",
-            "garden": "Garden & Outdoors",
-            "diy": "DIY & Tools",
-            "toys": "Toys & Games",
+            "beauty": "Beauty",
+            "pet": "Pet",
+            "health": "Health",
+            "baby": "Baby",
+            "kitchen": "Kitchen",
+            "garden": "Garden",
+            "diy": "DIY",
+            "toys": "Toys",
             "electrical": "Electronics",
-            "grocery": "Grocery & Gourmet",
-            "sports": "Sports & Outdoors",
+            "grocery": "Grocery",
+            "sports": "Sports",
             "automotive": "Automotive",
         }
         
@@ -191,17 +191,17 @@ async def category(request: Request, slug: str):
     
     # Category display names
     category_names = {
-        "beauty": "Beauty & Personal Care",
-        "pet": "Pet Supplies",
-        "health": "Health & Household",
-        "baby": "Baby Products",
-        "grocery": "Grocery & Gourmet",
-        "sports": "Sports & Outdoors",
+        "beauty": "Beauty",
+        "pet": "Pet",
+        "health": "Health",
+        "baby": "Baby",
+        "grocery": "Grocery",
+        "sports": "Sports",
         "automotive": "Automotive",
-        "kitchen": "Home & Kitchen",
-        "garden": "Garden & Outdoors",
-        "diy": "DIY & Tools",
-        "toys": "Toys & Games",
+        "kitchen": "Kitchen",
+        "garden": "Garden",
+        "diy": "DIY",
+        "toys": "Toys",
         "electrical": "Electronics"
     }
     
