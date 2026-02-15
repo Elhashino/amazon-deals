@@ -75,7 +75,7 @@
         <div>
             <h1 class="text-3xl font-bold text-gray-900">Sunniest Deals Of The Day</h1>
             {% if featured_deals and featured_deals|length > 0 %}
-            <p class="text-gray-600">Todays top three biggest discounts Up to {{ "%.0f"|format((featured_deals[0].discount_pct_90d or 0) * 100) }}% off!</p>
+            <p class="text-xs md:text-base text-gray-600">Todays top three biggest discounts Up to {{ "%.0f"|format((featured_deals[0].discount_pct_90d or 0) * 100) }}% off!</p>
             {% else %}
             <p class="text-gray-600">Check back soon for amazing deals!</p>
             {% endif %}
@@ -108,7 +108,7 @@
         </div>
         {% endfor %}
     </div>
-    <p class="text-xs md:text-sm text-gray-500 text-center mt-4">* We update prices daily; Amazon's live price at purchase may be different</p>
+    <p class="text-xs md:text-sm text-gray-500 text-center mt-4">* We update prices daily. Amazon's live price at purchase may be different</p>
     {% endif %}
 </div>
 
@@ -173,7 +173,7 @@
             {% endfor %}
         </div>
         <!-- Price Notice -->
-        <p class="text-xs md:text-sm text-gray-500 text-center mt-3">* We update prices daily; Amazon's live price at purchase may be different</p>
+        <p class="text-xs md:text-sm text-gray-500 text-center mt-3">* We update prices daily. Amazon's live price at purchase may be different</p>
     </div>
     {% endfor %}
 {% else %}
