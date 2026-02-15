@@ -61,7 +61,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-green-600 text-2xl font-bold">✓</span>
-                    <span>Price drop tracked</span>
+                    <span>Price drops tracked</span>
                 </div>
             </div>
         </div>
@@ -108,10 +108,7 @@
         </div>
         {% endfor %}
     </div>
-    <!-- Price Notice Box -->
-    <div class="mt-4 bg-white border-2 border-orange-200 rounded-xl p-3 text-center">
-        <p class="text-sm text-gray-600">⭐ We update prices daily; Amazon's live price at purchase may be different ⭐</p>
-    </div>
+    <p class="text-xs md:text-sm text-gray-500 text-center mt-4">* We update prices daily; Amazon's live price at purchase may be different</p>
     {% endif %}
 </div>
 
@@ -175,10 +172,8 @@
             </div>
             {% endfor %}
         </div>
-        <!-- Price Notice Box -->
-        <div class="mt-3 bg-white border-2 border-orange-200 rounded-xl p-3 text-center">
-            <p class="text-sm text-gray-600">⭐ We update prices daily; Amazon's live price at purchase may be different ⭐</p>
-        </div>
+        <!-- Price Notice -->
+        <p class="text-xs md:text-sm text-gray-500 text-center mt-3">* We update prices daily; Amazon's live price at purchase may be different</p>
     </div>
     {% endfor %}
 {% else %}
