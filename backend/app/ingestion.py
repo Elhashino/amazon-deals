@@ -182,6 +182,34 @@ def _extract_asin(obj: dict) -> str | None:
     return None
 
 
+def _clean_title(title: str) -> str:
+    """Remove common Amazon spam from product titles."""
+    if not title:
+        return title
+    
+    # Remove common spam patterns
+    spam_patterns = [
+        r'\(Pack of \d+\)',
+        r'\[\d+ Pack\]',
+        r'Compatible with ',
+        r'Works with ',
+        r'- \d+ Count',
+        r'\d+ Count',
+        r'Prime Eligible',
+        r'FREE Delivery',
+        r'Subscribe & Save',
+    ]
+    
+    import re
+    cleaned = title
+    for pattern in spam_patterns:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
+    
+    # Remove extra spaces and trim
+    cleaned = ' '.join(cleaned.split())
+    return cleaned[:600]  # Keep DB limit
+
+
 def run_ingestion_once():
     Base.metadata.create_all(bind=engine)
     client = KeepaClient()
@@ -257,7 +285,7 @@ def run_ingestion_once():
                     if p is None:
                         continue
 
-                    title = (p.get("title") or "")[:600]
+                    title = _clean_title(p.get("title") or "")
                     brand = (p.get("brand") or "")[:200]
                     image_url = _extract_image_url(p)
 
@@ -275,6 +303,19 @@ def run_ingestion_once():
                         continue
 
                     if metrics.discount_pct_90d < min_discount_for_category(cat_slug):
+                        continue
+
+                    # Quality filters to avoid junk/sketchy products
+                    # Skip products with too few reviews (likely new/untested products)
+                    if metrics.review_count is not None and metrics.review_count < 10:
+                        continue
+                    
+                    # Skip products with low ratings (likely poor quality)
+                    if metrics.rating is not None and metrics.rating < 3.5:
+                        continue
+                    
+                    # Skip suspiciously cheap products (likely pricing errors or scams)
+                    if metrics.price_current is not None and metrics.price_current < 0.50:
                         continue
 
                     # Ensure Product exists first (FK safety)

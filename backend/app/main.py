@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from sqlalchemy import create_engine, text
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 
@@ -29,6 +30,35 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 # Setup templates
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+# Add custom Jinja filter for time ago
+def time_ago(dt):
+    """Convert datetime to human readable 'time ago' string."""
+    if dt is None:
+        return "Unknown"
+    
+    # Ensure we have a timezone-aware datetime
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    
+    now = datetime.now(timezone.utc)
+    diff = now - dt
+    
+    seconds = diff.total_seconds()
+    
+    if seconds < 60:
+        return "Just now"
+    elif seconds < 3600:
+        minutes = int(seconds / 60)
+        return f"{minutes}m ago"
+    elif seconds < 86400:
+        hours = int(seconds / 3600)
+        return f"{hours}h ago"
+    else:
+        days = int(seconds / 86400)
+        return f"{days}d ago"
+
+templates.env.filters["time_ago"] = time_ago
+
 # Database connection
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
@@ -46,7 +76,7 @@ async def home(request: Request):
     with engine.connect() as conn:
         # Get top 3 overall for featured section
         featured_deals = conn.execute(text("""
-            SELECT 
+            SELECT DISTINCT ON (d.asin)
                 p.title, 
                 p.image_url, 
                 p.asin, 
@@ -57,12 +87,13 @@ async def home(request: Request):
                 d.hot_score, 
                 d.rating, 
                 d.review_count,
-                d.score
+                d.score,
+                d.ingested_at
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
             AND d.discount_pct_90d >= 0.30
-            ORDER BY d.discount_pct_90d DESC NULLS LAST
+            ORDER BY d.asin, d.discount_pct_90d DESC NULLS LAST
             LIMIT 3
         """)).mappings().all()
         
@@ -85,7 +116,7 @@ async def home(request: Request):
         
         for slug, name in category_names_map.items():
             category_deals = conn.execute(text("""
-                SELECT 
+                SELECT DISTINCT ON (d.asin)
                     p.title, 
                     p.image_url, 
                     p.asin, 
@@ -96,13 +127,17 @@ async def home(request: Request):
                     d.hot_score, 
                     d.rating, 
                     d.review_count,
-                    d.score
+                    d.score,
+                    d.ingested_at
                 FROM deals d
                 JOIN products p ON p.asin = d.asin
                 WHERE d.is_active = true
                 AND d.category_slug = :slug
                 AND d.discount_pct_90d >= 0.30
-                ORDER BY d.hot_score DESC NULLS LAST
+                ORDER BY d.asin, 
+                    (d.discount_pct_90d * 0.5 + 
+                     COALESCE(d.rating, 0) / 5.0 * 0.3 + 
+                     LEAST(LN(GREATEST(d.review_count, 1)) / 10.0, 1.0) * 0.2) DESC
                 LIMIT 3
             """), {"slug": slug}).mappings().all()
             
@@ -208,7 +243,7 @@ async def category(request: Request, slug: str):
     with engine.connect() as conn:
         # Get all deals for this category
         deals = conn.execute(text("""
-            SELECT 
+            SELECT DISTINCT ON (d.asin)
                 p.title, 
                 p.image_url, 
                 p.asin, 
@@ -219,17 +254,21 @@ async def category(request: Request, slug: str):
                 d.hot_score, 
                 d.rating, 
                 d.review_count,
-                d.score
+                d.score,
+                d.ingested_at
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true 
               AND d.category_slug = :slug
-            ORDER BY d.hot_score DESC NULLS LAST
+            ORDER BY d.asin,
+                (d.discount_pct_90d * 0.5 + 
+                 COALESCE(d.rating, 0) / 5.0 * 0.3 + 
+                 LEAST(LN(GREATEST(d.review_count, 1)) / 10.0, 1.0) * 0.2) DESC
         """), {"slug": slug}).mappings().all()
         
         # Get top 3 for featured section (highest discount)
         featured_deals = conn.execute(text("""
-            SELECT 
+            SELECT DISTINCT ON (d.asin)
                 p.title, 
                 p.image_url, 
                 p.asin, 
@@ -240,12 +279,13 @@ async def category(request: Request, slug: str):
                 d.hot_score, 
                 d.rating, 
                 d.review_count,
-                d.score
+                d.score,
+                d.ingested_at
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true 
               AND d.category_slug = :slug
-            ORDER BY d.discount_pct_90d DESC NULLS LAST
+            ORDER BY d.asin, d.discount_pct_90d DESC NULLS LAST
             LIMIT 3
         """), {"slug": slug}).mappings().all()
     
