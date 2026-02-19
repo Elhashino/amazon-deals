@@ -176,7 +176,8 @@ async def sunniest_savings(request: Request):
                 d.hot_score, 
                 d.rating, 
                 d.review_count,
-                d.score
+                d.score,
+                d.ingested_at
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
@@ -198,7 +199,8 @@ async def sunniest_savings(request: Request):
                 d.hot_score, 
                 d.rating, 
                 d.review_count,
-                d.score
+                d.score,
+                d.ingested_at
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true

@@ -307,11 +307,13 @@ def run_ingestion_once():
 
                     # Quality filters to avoid junk/sketchy products
                     # Skip products with too few reviews (likely new/untested products)
-                    if metrics.review_count is not None and metrics.review_count < 10:
+                    # RELAXED: Changed from 10 to 5 reviews minimum
+                    if metrics.review_count is not None and metrics.review_count < 5:
                         continue
                     
                     # Skip products with low ratings (likely poor quality)
-                    if metrics.rating is not None and metrics.rating < 3.5:
+                    # RELAXED: Changed from 3.5 to 3.0 stars minimum
+                    if metrics.rating is not None and metrics.rating < 3.0:
                         continue
                     
                     # Skip suspiciously cheap products (likely pricing errors or scams)
