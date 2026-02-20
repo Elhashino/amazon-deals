@@ -81,29 +81,35 @@ def categorize(product: dict, root_name: str) -> str:
     if "automotive" in root or "car" in root:
         return "automotive"
     
-    # GARDEN - Much stricter keywords to avoid false positives
-    # Using specific garden terms only - avoiding broad words like "plant", "outdoor"
-    garden_keywords = [
-        "garden", "gardening", "lawn mower", "lawnmower", "lawn feed", "lawn seed",
-        "greenhouse", "garden shed", "shed", "patio", "decking", "garden furniture",
-        "outdoor furniture", "garden chair", "garden table", "garden bench",
-        "bbq", "barbecue", "garden bbq", "parasol", "garden parasol",
-        "planter", "plant pot", "flower pot", "garden pot", "grow bag",
-        "compost", "fertiliser", "fertilizer", "weed killer", "pesticide",
-        "garden hose", "watering can", "sprinkler", "garden sprinkler",
-        "hedge trimmer", "strimmer", "lawn edger", "garden shears",
-        "secateurs", "trowel", "garden fork", "garden spade", "garden rake",
-        "bird feeder", "bird bath", "garden bird", "windmill garden",
-        "garden light", "solar garden", "garden path", "garden paving",
-        "artificial grass", "garden turf", "garden soil", "potting mix",
-        "seed packet", "vegetable seed", "flower seed", "bulb planting",
-        "garden netting", "garden fleece", "garden wire", "garden border"
+    # GARDEN - Very strict: require "garden" in text OR garden-specific words only
+    # Step 1: Check if "garden" or "gardening" appears anywhere
+    has_garden_word = "garden" in all_text or "gardening" in all_text
+    
+    # Step 2: Garden-specific keywords that are unambiguous
+    garden_specific_keywords = [
+        "lawn mower", "lawnmower", "lawn feed", "lawn seed", "lawn care",
+        "greenhouse", "compost", "fertiliser", "fertilizer", "weed killer",
+        "hedge trimmer", "strimmer", "lawn edger", "secateurs", "trowel",
+        "watering can", "grow bag", "potting soil", "potting mix",
+        "plant pot", "flower pot", "planter box",
+        "garden hose", "garden fork", "garden spade", "garden rake",
+        "bird feeder", "bird bath", "seed packet", "vegetable seed"
     ]
-    if any(kw in all_text for kw in garden_keywords):
+    
+    has_garden_specific = any(kw in all_text for kw in garden_specific_keywords)
+    
+    # Only categorize as garden if either condition is true
+    if has_garden_word or has_garden_specific:
         # Exclude if clearly a non-garden category
-        non_garden = ["football", "tennis", "cricket", "golf", "fitness", "gym",
-                      "bike", "cycling", "makeup", "skincare", "shampoo", "vitamin",
-                      "supplement", "kitchen", "cookware", "food", "snack", "drink"]
+        non_garden = [
+            "football", "tennis", "cricket", "golf", "fitness", "gym",
+            "bike", "cycling", "makeup", "skincare", "shampoo", "vitamin",
+            "supplement", "kitchen", "cookware", "food", "snack", "drink",
+            "toy", "game", "puzzle", "doll", "action figure",
+            "clothing", "shirt", "trouser", "dress", "jacket",
+            "electronics", "phone", "tablet", "laptop", "camera",
+            "book", "dvd", "cd", "music"
+        ]
         if not any(kw in all_text for kw in non_garden):
             return "garden"
     
@@ -286,6 +292,17 @@ def run_ingestion_once():
                         continue
 
                     title = _clean_title(p.get("title") or "")
+                    
+                    # Skip unwanted products (underwear, erotic, etc.)
+                    exclude_keywords = [
+                        "underwear", "lingerie", "bra", "panties", "thong",
+                        "g-string", "sexy", "erotic", "adult", "knickers",
+                        "briefs", "boxers", "intimate"
+                    ]
+                    title_lower = title.lower()
+                    if any(keyword in title_lower for keyword in exclude_keywords):
+                        continue
+                    
                     brand = (p.get("brand") or "")[:200]
                     image_url = _extract_image_url(p)
 

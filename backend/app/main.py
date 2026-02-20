@@ -92,7 +92,7 @@ async def home(request: Request):
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
-            AND d.discount_pct_90d >= 0.30
+            AND d.discount_pct_90d >= 0.25
             ORDER BY d.asin, d.discount_pct_90d DESC NULLS LAST
             LIMIT 3
         """)).mappings().all()
@@ -133,7 +133,7 @@ async def home(request: Request):
                 JOIN products p ON p.asin = d.asin
                 WHERE d.is_active = true
                 AND d.category_slug = :slug
-                AND d.discount_pct_90d >= 0.30
+                AND d.discount_pct_90d >= 0.25
                 ORDER BY d.asin, 
                     (d.discount_pct_90d * 0.5 + 
                      COALESCE(d.rating, 0) / 5.0 * 0.3 + 
@@ -181,7 +181,7 @@ async def sunniest_savings(request: Request):
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
-            AND d.discount_pct_90d >= 0.30
+            AND d.discount_pct_90d >= 0.25
             ORDER BY d.hot_score DESC NULLS LAST
             LIMIT 100
         """)).mappings().all()
@@ -204,7 +204,7 @@ async def sunniest_savings(request: Request):
             FROM deals d
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
-            AND d.discount_pct_90d >= 0.30
+            AND d.discount_pct_90d >= 0.25
             ORDER BY d.discount_pct_90d DESC NULLS LAST
             LIMIT 3
         """)).mappings().all()

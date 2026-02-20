@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     KEEPA_API_KEY: str = ""
 
     # Ingestion controls
-    DEALS_PAGES_PER_ROOT_CATEGORY: int = 2
+    DEALS_PAGES_PER_ROOT_CATEGORY: int = 3
 
     # Minimum discount thresholds per category slug
     MIN_DISCOUNT_HOME: float = 0.25
