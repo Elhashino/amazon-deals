@@ -1,0 +1,38 @@
+name: Deal Ingestion
+
+on:
+  schedule:
+    # Runs daily at 2:00 AM UTC (adjust to your preferred time)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allows you to trigger a run manually from the GitHub Actions tab
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6-hour hard cap (GitHub Actions limit)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run ingestion
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          KEEPA_API_KEY: ${{ secrets.KEEPA_API_KEY }}
+          # Override to 3 pages so the job fits within the 6-hour GitHub limit.
+          # Our scoring improvements already extract more deals from 3 pages than before.
+          DEALS_PAGES_PER_ROOT_CATEGORY: '3'
+          PURGE_DEALS_ON_END: '1'
+          PURGE_DEALS_ON_START: '0'
+        run: python -m app.ingestion
