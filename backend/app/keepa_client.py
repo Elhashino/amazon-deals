@@ -71,8 +71,8 @@ class KeepaClient:
                 buybox=False,
                 offers=None,
                 progress_bar=False,
-                # keep data lighter than 180d while still enough for 90d stats
-                days=120,
+                # 180d gives solid coverage for 90d median/volatility calculations
+                days=180,
                 # wait for tokens if needed instead of failing
                 wait=True,
             )

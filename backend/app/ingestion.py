@@ -316,11 +316,18 @@ def run_ingestion_once():
                     cat_slug = categorize(p, root_cat_name)
 
                     metrics = compute_deal_metrics(p)
-                    if metrics.discount_pct_90d is None or metrics.score is None:
+                    if metrics.discount_pct_90d is None:
                         continue
 
                     if metrics.discount_pct_90d < min_discount_for_category(cat_slug):
                         continue
+
+                    # If score still couldn't be computed, synthesise a simple fallback
+                    # so the deal isn't silently dropped (score = discount * 70, confidence = 0)
+                    if metrics.score is None:
+                        metrics.score = float(min(metrics.discount_pct_90d, 1.0) * 70.0)
+                        if metrics.confidence is None:
+                            metrics.confidence = 0.0
 
                     # Quality filters to avoid junk/sketchy products
                     # Skip products with too few reviews (likely new/untested products)

@@ -96,7 +96,7 @@ def _median_last_days(values: np.ndarray, times: np.ndarray, days: int, *, inval
 def _volatility(values: np.ndarray, times: np.ndarray, days: int = 90) -> float | None:
     """Robust relative volatility using MAD/median on the last N days."""
     v = _subset_last_days(values, times, days)
-    if v.size < 5:
+    if v.size < 3:
         return None
     med = float(np.median(v))
     if med <= 0:
@@ -181,17 +181,30 @@ def compute_deal_metrics(product: dict[str, Any]) -> DealMetrics:
         )
 
     price_current = _last_valid(values, invalid_leq=0)
-    median_90d = _median_last_days(values, times, 90, invalid_leq=0)
+
+    # Try progressively shorter windows when 90d data is sparse
+    median_90d = None
+    lookback_used = 0
+    for lookback in (90, 60, 30):
+        m = _median_last_days(values, times, lookback, invalid_leq=0)
+        if m is not None:
+            median_90d = m
+            lookback_used = lookback
+            break
 
     discount = None
     if price_current is not None and median_90d is not None and median_90d > 0:
         discount = (median_90d - price_current) / median_90d
 
-    vol = _volatility(values, times, 90)
+    # Use the same lookback window for volatility; fall back to whatever worked for median
+    vol = _volatility(values, times, lookback_used or 90)
     confidence = None
     if vol is not None:
         # 0% vol => 100 confidence, 30%+ vol => ~0 confidence
         confidence = float(np.clip(1.0 - (vol / 0.30), 0.0, 1.0) * 100.0)
+    elif discount is not None:
+        # Not enough data for volatility — assign a neutral-low confidence
+        confidence = 40.0
 
     score = None
     if discount is not None and confidence is not None:
