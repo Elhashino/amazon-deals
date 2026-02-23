@@ -175,6 +175,29 @@ def categorize(product: dict, root_name: str) -> str:
     if "electronics" in root:
         return "electrical"
 
+    # --- Keyword-based fallbacks for items rejected from their root category ---
+    # Catches e.g. fitness gear rejected from health, or electrical items rejected from beauty
+
+    sports_fallback = [
+        "treadmill", "exercise bike", "rowing machine", "cross trainer", "spin bike",
+        "dumbbell", "barbell", "weight plate", "kettlebell", "pull up bar",
+        "resistance band", "yoga mat", "gym bench", "punch bag", "boxing glove",
+        "running shoe", "football boot", "cycling shoe", "skipping rope", "ab roller",
+        "elbow guard", "elbow pad", "knee guard", "knee pad", "shin guard",
+        "ski boot", "snowboard", "cycling helmet", "mtb helmet", "motocross helmet"
+    ]
+    if any(kw in all_text for kw in sports_fallback):
+        return "sports"
+
+    electrical_fallback = [
+        "hair dryer", "hair straightener", "straighteners", "hair curler",
+        "curling tong", "electric shaver", "electric razor", "epilator",
+        "electric toothbrush", "water flosser", "facial steamer",
+        "led mask", "led light therapy", "sonic cleaner", "massager"
+    ]
+    if any(kw in all_text for kw in electrical_fallback):
+        return "electrical"
+
     return "home"
 
 
