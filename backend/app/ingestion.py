@@ -394,15 +394,13 @@ def run_ingestion_once():
                         if metrics.confidence is None:
                             metrics.confidence = 0.0
 
-                    # Quality filters to avoid junk/sketchy products
-                    # Skip products with too few reviews (likely new/untested products)
-                    # RELAXED: Changed from 10 to 5 reviews minimum
-                    if metrics.review_count is not None and metrics.review_count < 5:
+                    # Quality filters — balance between volume and not showing junk
+                    # Enough reviews to trust the product is established
+                    if metrics.review_count is not None and metrics.review_count < 15:
                         continue
-                    
-                    # Skip products with low ratings (likely poor quality)
-                    # RELAXED: Changed from 3.5 to 3.0 stars minimum
-                    if metrics.rating is not None and metrics.rating < 3.0:
+
+                    # Decent rating — filters out poor quality without being too strict
+                    if metrics.rating is not None and metrics.rating < 3.5:
                         continue
                     
                     # Skip suspiciously cheap products (likely pricing errors or scams)

@@ -10,20 +10,20 @@ class Settings(BaseSettings):
     DEALS_PAGES_PER_ROOT_CATEGORY: int = 5
 
     # Minimum discount thresholds per category slug
-    MIN_DISCOUNT_HOME: float = 0.20
-    MIN_DISCOUNT_KITCHEN: float = 0.20
-    MIN_DISCOUNT_DIY: float = 0.20
-    MIN_DISCOUNT_ELECTRICAL: float = 0.20
-    MIN_DISCOUNT_TOYS: float = 0.20
+    MIN_DISCOUNT_HOME: float = 0.15
+    MIN_DISCOUNT_KITCHEN: float = 0.15
+    MIN_DISCOUNT_DIY: float = 0.15
+    MIN_DISCOUNT_ELECTRICAL: float = 0.15
+    MIN_DISCOUNT_TOYS: float = 0.15
 
     # New slugs you added/changed
-    MIN_DISCOUNT_GROCERY: float = 0.20
-    MIN_DISCOUNT_HEALTH: float = 0.20
-    MIN_DISCOUNT_BEAUTY: float = 0.20
-    MIN_DISCOUNT_PET: float = 0.20
-    MIN_DISCOUNT_SPORTS: float = 0.20
-    MIN_DISCOUNT_BABY: float = 0.20
-    MIN_DISCOUNT_AUTOMOTIVE: float = 0.20
+    MIN_DISCOUNT_GROCERY: float = 0.15
+    MIN_DISCOUNT_HEALTH: float = 0.15
+    MIN_DISCOUNT_BEAUTY: float = 0.15
+    MIN_DISCOUNT_PET: float = 0.15
+    MIN_DISCOUNT_SPORTS: float = 0.15
+    MIN_DISCOUNT_BABY: float = 0.15
+    MIN_DISCOUNT_AUTOMOTIVE: float = 0.15
 
     class Config:
         env_file = ".env"
