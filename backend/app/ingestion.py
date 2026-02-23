@@ -432,6 +432,9 @@ def run_ingestion_once():
 
         print(f"\nProcessed {deals_processed} deals in this run")
 
+        # Flush ORM changes before raw SQL deletes to avoid StaleDataError
+        db.flush()
+
         # CRITICAL FIX: Remove any duplicate deals (same ASIN + category_slug)
         # Keep only the most recently ingested one
         print("Removing duplicate deals...")
