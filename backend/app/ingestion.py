@@ -67,15 +67,40 @@ def categorize(product: dict, root_name: str) -> str:
     # Combine all text for keyword matching
     all_text = f"{root} {tree_names} {title}"
 
-    # Expanded buckets - check specific keywords first
+    # BEAUTY — exclude electrical personal care that belongs in electrical
     if "beauty" in root:
-        return "beauty"
+        non_beauty = [
+            "hair dryer", "hair straightener", "straighteners", "hair curler",
+            "curling tong", "electric shaver", "electric razor", "epilator",
+            "electric toothbrush", "water flosser", "massager", "facial steamer",
+            "led mask", "led light therapy", "sonic cleaner"
+        ]
+        if not any(kw in all_text for kw in non_beauty):
+            return "beauty"
+        # Falls through to electrical check below
+
+    # HEALTH — exclude sports/fitness equipment that belongs in sports
     if "health" in root:
-        return "health"
+        non_health = [
+            "treadmill", "exercise bike", "rowing machine", "cross trainer",
+            "spin bike", "dumbbell", "barbell", "weight plate", "kettlebell",
+            "pull up bar", "resistance band", "yoga mat", "gym bench",
+            "punch bag", "boxing glove", "sports shoe", "running shoe",
+            "football boot", "cycling shoe", "skipping rope", "ab roller"
+        ]
+        if not any(kw in all_text for kw in non_health):
+            return "health"
+        # Falls through to sports check below
+
+    # GROCERY
     if "grocery" in root or "food" in root:
         return "grocery"
+
+    # PET
     if "pet" in root:
         return "pet"
+
+    # BABY — only if product is actually a baby product
     if "baby" in root:
         baby_keywords = [
             "baby", "infant", "toddler", "newborn", "nappy", "diaper",
@@ -92,7 +117,10 @@ def categorize(product: dict, root_name: str) -> str:
         ]
         if any(kw in all_text for kw in baby_keywords) and not any(kw in all_text for kw in non_baby):
             return "baby"
-    if "automotive" in root or "car" in root:
+        # Falls through to correct category below
+
+    # AUTOMOTIVE — avoid matching "care", "card", "carpet" etc.
+    if "automotive" in root or "motoring" in root or "vehicle" in root:
         return "automotive"
     
     # GARDEN - Very strict: require "garden" in text OR garden-specific words only
