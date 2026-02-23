@@ -77,7 +77,21 @@ def categorize(product: dict, root_name: str) -> str:
     if "pet" in root:
         return "pet"
     if "baby" in root:
-        return "baby"
+        baby_keywords = [
+            "baby", "infant", "toddler", "newborn", "nappy", "diaper",
+            "pram", "pushchair", "buggy", "cot", "nursery", "teething",
+            "dummy", "bottle feed", "breast pump", "maternity", "stroller",
+            "weaning", "highchair", "car seat", "baby monitor", "baby wipe",
+            "neonatal", "babygrow", "onesie", "bib", "moses basket"
+        ]
+        non_baby = [
+            "elbow guard", "elbow pad", "knee guard", "knee pad", "helmet",
+            "glove", "shin guard", "protective gear", "body armour",
+            "cycling", "ski", "snowboard", "mtb", "motocross",
+            "adult", "men", "women", "xl", "xxl", "large", "medium"
+        ]
+        if any(kw in all_text for kw in baby_keywords) and not any(kw in all_text for kw in non_baby):
+            return "baby"
     if "automotive" in root or "car" in root:
         return "automotive"
     
