@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     MIN_DISCOUNT_SPORTS: float = 0.15
     MIN_DISCOUNT_BABY: float = 0.15
     MIN_DISCOUNT_AUTOMOTIVE: float = 0.15
+    MIN_DISCOUNT_MISC: float = 0.15
 
     class Config:
         env_file = ".env"

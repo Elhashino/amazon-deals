@@ -112,6 +112,7 @@ async def home(request: Request):
             "grocery": "Grocery",
             "sports": "Sports",
             "automotive": "Automotive",
+            "misc": "More Deals",
         }
         
         for slug, name in category_names_map.items():
@@ -341,9 +342,9 @@ async def sitemap():
     """Generate XML sitemap for search engines"""
     from fastapi.responses import Response
     
-    categories = ["beauty", "pet", "health", "baby", "grocery", "sports", 
-                  "automotive", "kitchen", "garden", "diy", "toys", "electrical", 
-                  "sunniest-savings"]
+    categories = ["beauty", "pet", "health", "baby", "grocery", "sports",
+                  "automotive", "kitchen", "garden", "diy", "toys", "electrical",
+                  "misc", "sunniest-savings"]
     
     sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n'
     sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

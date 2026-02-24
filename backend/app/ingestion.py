@@ -67,17 +67,9 @@ def categorize(product: dict, root_name: str) -> str:
     # Combine all text for keyword matching
     all_text = f"{root} {tree_names} {title}"
 
-    # BEAUTY — exclude electrical personal care that belongs in electrical
+    # BEAUTY — all beauty-root products stay as beauty
     if "beauty" in root:
-        non_beauty = [
-            "hair dryer", "hair straightener", "straighteners", "hair curler",
-            "curling tong", "electric shaver", "electric razor", "epilator",
-            "electric toothbrush", "water flosser", "massager", "facial steamer",
-            "led mask", "led light therapy", "sonic cleaner"
-        ]
-        if not any(kw in all_text for kw in non_beauty):
-            return "beauty"
-        # Falls through to electrical check below
+        return "beauty"
 
     # HEALTH — exclude sports/fitness equipment that belongs in sports
     if "health" in root:
@@ -149,7 +141,7 @@ def categorize(product: dict, root_name: str) -> str:
             "supplement", "kitchen", "cookware", "food", "snack", "drink",
             "toy", "game", "puzzle", "doll", "action figure",
             "clothing", "shirt", "trouser", "dress", "jacket",
-            "electronics", "phone", "tablet", "laptop", "camera",
+            "phone", "tablet", "laptop", "camera",
             "book", "dvd", "cd", "music"
         ]
         if not any(kw in all_text for kw in non_garden):
@@ -164,7 +156,7 @@ def categorize(product: dict, root_name: str) -> str:
         names = " ".join(_norm(n.get("name", "")) for n in category_tree if isinstance(n, dict))
         if any(k in names for k in ["kitchen", "dining", "cookware", "bakeware", "utensils", "appliances"]):
             return "kitchen"
-        return "home"
+        return "misc"
 
     if "diy" in root or "tools" in root:
         return "diy"
@@ -198,7 +190,7 @@ def categorize(product: dict, root_name: str) -> str:
     if any(kw in all_text for kw in electrical_fallback):
         return "electrical"
 
-    return "home"
+    return "misc"
 
 
 def min_discount_for_category(cat: str) -> float:
@@ -218,6 +210,7 @@ def min_discount_for_category(cat: str) -> float:
         "baby": settings.MIN_DISCOUNT_BABY,
         "automotive": settings.MIN_DISCOUNT_AUTOMOTIVE,
         "garden": settings.MIN_DISCOUNT_HOME,  # Use same threshold as home
+        "misc": settings.MIN_DISCOUNT_MISC,
     }.get(cat, settings.MIN_DISCOUNT_HOME)
 
 
