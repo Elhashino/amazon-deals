@@ -1,13 +1,13 @@
-name: Deal Ingestion – Group A
+name: Deal Ingestion – Group B
 
 on:
   schedule:
-    # Group A runs at 2:00 AM UTC daily (home/electronics/beauty/health side)
-    - cron: '0 2 * * *'
+    # Group B runs at 2:00 PM UTC daily (grocery/pet/sports/baby/automotive/garden)
+    - cron: '0 14 * * *'
   workflow_dispatch:
 
 jobs:
-  ingest-group-a:
+  ingest-group-b:
     runs-on: ubuntu-latest
     timeout-minutes: 360  # 6-hour hard cap (GitHub Actions limit)
 
@@ -31,8 +31,8 @@ jobs:
           KEEPA_API_KEY: ${{ secrets.KEEPA_API_KEY }}
           # Only 6 categories now so we can afford 5 pages within the time limit
           DEALS_PAGES_PER_ROOT_CATEGORY: '5'
-          CATEGORY_GROUP: 'A'
-          # Don't purge — Group B runs at 2pm and does the cleanup
-          PURGE_DEALS_ON_END: '0'
+          CATEGORY_GROUP: 'B'
+          # Group B does the daily cleanup — deletes deals older than 25 hours
+          PURGE_DEALS_ON_END: '1'
           PURGE_DEALS_ON_START: '0'
         run: python -m app.ingestion

@@ -53,6 +53,13 @@ def resolve_root_category_ids(roots: dict[str, dict]) -> dict[str, int]:
         cid = find_id(kws)
         if cid:
             out[key] = cid
+
+    resolved = list(out.keys())
+    missing = [k for k in targets if k not in out]
+    print(f"Resolved {len(resolved)}/{len(targets)} categories: {resolved}")
+    if missing:
+        print(f"WARNING: Could not resolve categories (will get 0 deals from these): {missing}")
+
     return out
 
 
@@ -281,6 +288,21 @@ def run_ingestion_once():
     roots = client.uk_root_categories() or {}
     root_ids = resolve_root_category_ids(roots)
 
+    # Optional: restrict to a subset of categories via CATEGORY_GROUP env var.
+    # A = home/electronics/beauty/health side; B = grocery/pet/sports/baby/auto/garden side.
+    # Leave unset (or empty) to run all categories (original behaviour).
+    category_group = os.getenv("CATEGORY_GROUP", "").strip().upper()
+    GROUP_A = {"home_kitchen", "diy_tools", "toys_games", "electronics", "beauty", "health"}
+    GROUP_B = {"grocery", "pet", "sports", "baby", "automotive", "garden"}
+    if category_group == "A":
+        root_ids = {k: v for k, v in root_ids.items() if k in GROUP_A}
+        print(f"CATEGORY_GROUP=A — running: {list(root_ids.keys())}")
+    elif category_group == "B":
+        root_ids = {k: v for k, v in root_ids.items() if k in GROUP_B}
+        print(f"CATEGORY_GROUP=B — running: {list(root_ids.keys())}")
+    else:
+        print(f"CATEGORY_GROUP not set — running all: {list(root_ids.keys())}")
+
     # keep runtime bounded: only ingest the curated root ids we found
     unique_root_ids = sorted(set(root_ids.values()))
     include_lists: list[list[int]]
@@ -388,8 +410,8 @@ def run_ingestion_once():
                             metrics.confidence = 0.0
 
                     # Quality filters — balance between volume and not showing junk
-                    # Enough reviews to trust the product is established
-                    if metrics.review_count is not None and metrics.review_count < 15:
+                    # Require at least 15 reviews — products with no review data are also excluded
+                    if metrics.review_count is None or metrics.review_count < 15:
                         continue
 
                     # Decent rating — filters out poor quality without being too strict
@@ -509,10 +531,12 @@ def run_ingestion_once():
         # CRITICAL FIX: After a successful ingestion, delete deals from PREVIOUS runs
         # We use published_at (which we control) instead of ingested_at (which has unique timestamps from trigger)
         if purge_end:
-            print(f"Purging deals from previous runs (published_at < {run_started_at})")
+            # Delete deals older than 25 hours. This is safe for both single-run and
+            # two-run setups: a 2am Group A run and a 2pm Group B run are only 12 hours
+            # apart, so both stay within the 25-hour window and neither wipes the other.
+            print("Purging deals older than 25 hours...")
             result = db.execute(
-                text("DELETE FROM deals WHERE published_at IS NULL OR published_at < :run_ts"),
-                {"run_ts": run_started_at},
+                text("DELETE FROM deals WHERE published_at IS NULL OR published_at < (NOW() - INTERVAL '25 hours')")
             )
             deleted_count = result.rowcount
             print(f"Deleted {deleted_count} old deals")
