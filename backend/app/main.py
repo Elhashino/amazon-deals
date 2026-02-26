@@ -353,6 +353,32 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/debug/db")
+async def debug_db():
+    """Temporary diagnostic endpoint - check DB state"""
+    with engine.connect() as conn:
+        total = conn.execute(text("SELECT COUNT(*) FROM deals")).scalar()
+        active = conn.execute(text("SELECT COUNT(*) FROM deals WHERE is_active = true")).scalar()
+        passing_filter = conn.execute(text("SELECT COUNT(*) FROM deals WHERE is_active = true AND discount_pct_90d >= 0.25")).scalar()
+        null_published = conn.execute(text("SELECT COUNT(*) FROM deals WHERE published_at IS NULL")).scalar()
+        oldest = conn.execute(text("SELECT MIN(published_at) FROM deals")).scalar()
+        newest = conn.execute(text("SELECT MAX(published_at) FROM deals")).scalar()
+        by_category = conn.execute(text("""
+            SELECT category_slug, COUNT(*) as cnt, MIN(discount_pct_90d) as min_disc, MAX(discount_pct_90d) as max_disc
+            FROM deals WHERE is_active = true
+            GROUP BY category_slug ORDER BY cnt DESC
+        """)).mappings().all()
+    return {
+        "total_deals": total,
+        "active_deals": active,
+        "passing_discount_filter": passing_filter,
+        "null_published_at": null_published,
+        "oldest_published_at": str(oldest),
+        "newest_published_at": str(newest),
+        "by_category": [dict(r) for r in by_category],
+    }
+
+
 @app.get("/sitemap.xml")
 async def sitemap():
     """Generate XML sitemap for search engines"""
