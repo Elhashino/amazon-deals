@@ -286,6 +286,9 @@ def run_ingestion_once():
     client = KeepaClient()
 
     roots = client.uk_root_categories() or {}
+    if not roots:
+        raise RuntimeError("Keepa uk_root_categories() returned empty — API token exhausted or API unreachable. Aborting to preserve existing deals.")
+
     root_ids = resolve_root_category_ids(roots)
 
     # Optional: restrict to a subset of categories via CATEGORY_GROUP env var.
@@ -303,14 +306,12 @@ def run_ingestion_once():
     else:
         print(f"CATEGORY_GROUP not set — running all: {list(root_ids.keys())}")
 
+    if not root_ids:
+        raise RuntimeError(f"No category IDs resolved for CATEGORY_GROUP={category_group!r}. Aborting to preserve existing deals.")
+
     # keep runtime bounded: only ingest the curated root ids we found
     unique_root_ids = sorted(set(root_ids.values()))
-    include_lists: list[list[int]]
-    if unique_root_ids:
-        include_lists = [[cid] for cid in unique_root_ids]
-    else:
-        # fallback: old behaviour if roots parsing fails
-        include_lists = [[int(v.get("catId"))] for v in roots.values() if v.get("catId")]
+    include_lists: list[list[int]] = [[cid] for cid in unique_root_ids]
 
     # CRITICAL FIX: Record the run start time BEFORE opening DB session
     # We use published_at (timestamp without tz, naive) to track which deals belong to this run
@@ -534,9 +535,9 @@ def run_ingestion_once():
             # Delete deals older than 25 hours. This is safe for both single-run and
             # two-run setups: a 2am Group A run and a 2pm Group B run are only 12 hours
             # apart, so both stay within the 25-hour window and neither wipes the other.
-            print("Purging deals older than 25 hours...")
+            print("Purging deals older than 48 hours...")
             result = db.execute(
-                text("DELETE FROM deals WHERE published_at IS NULL OR published_at < (NOW() - INTERVAL '25 hours')")
+                text("DELETE FROM deals WHERE published_at IS NULL OR published_at < (NOW() - INTERVAL '48 hours')")
             )
             deleted_count = result.rowcount
             print(f"Deleted {deleted_count} old deals")
