@@ -32,7 +32,7 @@ jobs:
           # Only 6 categories now so we can afford 5 pages within the time limit
           DEALS_PAGES_PER_ROOT_CATEGORY: '5'
           CATEGORY_GROUP: 'B'
-          # Group B does the daily cleanup — deletes deals older than 25 hours
+          # Group B does the daily cleanup — deletes deals older than 48 hours
           PURGE_DEALS_ON_END: '1'
           PURGE_DEALS_ON_START: '0'
         run: python -m app.ingestion
