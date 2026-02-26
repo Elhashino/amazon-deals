@@ -76,24 +76,27 @@ async def home(request: Request):
     with engine.connect() as conn:
         # Get top 3 overall for featured section
         featured_deals = conn.execute(text("""
-            SELECT DISTINCT ON (d.asin)
-                p.title, 
-                p.image_url, 
-                p.asin, 
-                d.discount_pct_90d, 
-                d.price_current, 
-                d.price_median_90d, 
-                d.category_slug,
-                d.hot_score, 
-                d.rating, 
-                d.review_count,
-                d.score,
-                d.ingested_at
-            FROM deals d
-            JOIN products p ON p.asin = d.asin
-            WHERE d.is_active = true
-            AND d.discount_pct_90d >= 0.25
-            ORDER BY d.asin, d.discount_pct_90d DESC NULLS LAST
+            SELECT * FROM (
+                SELECT DISTINCT ON (d.asin)
+                    p.title,
+                    p.image_url,
+                    p.asin,
+                    d.discount_pct_90d,
+                    d.price_current,
+                    d.price_median_90d,
+                    d.category_slug,
+                    d.hot_score,
+                    d.rating,
+                    d.review_count,
+                    d.score,
+                    d.ingested_at
+                FROM deals d
+                JOIN products p ON p.asin = d.asin
+                WHERE d.is_active = true
+                AND d.discount_pct_90d >= 0.25
+                ORDER BY d.asin, d.hot_score DESC NULLS LAST
+            ) sub
+            ORDER BY hot_score DESC NULLS LAST
             LIMIT 3
         """)).mappings().all()
         
@@ -117,28 +120,33 @@ async def home(request: Request):
         
         for slug, name in category_names_map.items():
             category_deals = conn.execute(text("""
-                SELECT DISTINCT ON (d.asin)
-                    p.title, 
-                    p.image_url, 
-                    p.asin, 
-                    d.discount_pct_90d, 
-                    d.price_current, 
-                    d.price_median_90d, 
-                    d.category_slug,
-                    d.hot_score, 
-                    d.rating, 
-                    d.review_count,
-                    d.score,
-                    d.ingested_at
-                FROM deals d
-                JOIN products p ON p.asin = d.asin
-                WHERE d.is_active = true
-                AND d.category_slug = :slug
-                AND d.discount_pct_90d >= 0.25
-                ORDER BY d.asin, 
-                    (d.discount_pct_90d * 0.5 + 
-                     COALESCE(d.rating, 0) / 5.0 * 0.3 + 
-                     LEAST(LN(GREATEST(d.review_count, 1)) / 10.0, 1.0) * 0.2) DESC
+                SELECT * FROM (
+                    SELECT DISTINCT ON (d.asin)
+                        p.title,
+                        p.image_url,
+                        p.asin,
+                        d.discount_pct_90d,
+                        d.price_current,
+                        d.price_median_90d,
+                        d.category_slug,
+                        d.hot_score,
+                        d.rating,
+                        d.review_count,
+                        d.score,
+                        d.ingested_at
+                    FROM deals d
+                    JOIN products p ON p.asin = d.asin
+                    WHERE d.is_active = true
+                    AND d.category_slug = :slug
+                    AND d.discount_pct_90d >= 0.25
+                    ORDER BY d.asin,
+                        (d.discount_pct_90d * 0.5 +
+                         COALESCE(d.rating, 0) / 5.0 * 0.3 +
+                         LEAST(LN(GREATEST(d.review_count, 1)) / 10.0, 1.0) * 0.2) DESC
+                ) sub
+                ORDER BY (discount_pct_90d * 0.5 +
+                          COALESCE(rating, 0) / 5.0 * 0.3 +
+                          LEAST(LN(GREATEST(review_count, 1)) / 10.0, 1.0) * 0.2) DESC
                 LIMIT 3
             """), {"slug": slug}).mappings().all()
             
@@ -246,49 +254,57 @@ async def category(request: Request, slug: str):
     with engine.connect() as conn:
         # Get all deals for this category
         deals = conn.execute(text("""
-            SELECT DISTINCT ON (d.asin)
-                p.title, 
-                p.image_url, 
-                p.asin, 
-                d.discount_pct_90d, 
-                d.price_current, 
-                d.price_median_90d, 
-                d.category_slug,
-                d.hot_score, 
-                d.rating, 
-                d.review_count,
-                d.score,
-                d.ingested_at
-            FROM deals d
-            JOIN products p ON p.asin = d.asin
-            WHERE d.is_active = true 
-              AND d.category_slug = :slug
-            ORDER BY d.asin,
-                (d.discount_pct_90d * 0.5 + 
-                 COALESCE(d.rating, 0) / 5.0 * 0.3 + 
-                 LEAST(LN(GREATEST(d.review_count, 1)) / 10.0, 1.0) * 0.2) DESC
+            SELECT * FROM (
+                SELECT DISTINCT ON (d.asin)
+                    p.title,
+                    p.image_url,
+                    p.asin,
+                    d.discount_pct_90d,
+                    d.price_current,
+                    d.price_median_90d,
+                    d.category_slug,
+                    d.hot_score,
+                    d.rating,
+                    d.review_count,
+                    d.score,
+                    d.ingested_at
+                FROM deals d
+                JOIN products p ON p.asin = d.asin
+                WHERE d.is_active = true
+                  AND d.category_slug = :slug
+                ORDER BY d.asin,
+                    (d.discount_pct_90d * 0.5 +
+                     COALESCE(d.rating, 0) / 5.0 * 0.3 +
+                     LEAST(LN(GREATEST(d.review_count, 1)) / 10.0, 1.0) * 0.2) DESC
+            ) sub
+            ORDER BY (discount_pct_90d * 0.5 +
+                      COALESCE(rating, 0) / 5.0 * 0.3 +
+                      LEAST(LN(GREATEST(review_count, 1)) / 10.0, 1.0) * 0.2) DESC
         """), {"slug": slug}).mappings().all()
-        
+
         # Get top 3 for featured section (highest discount)
         featured_deals = conn.execute(text("""
-            SELECT DISTINCT ON (d.asin)
-                p.title, 
-                p.image_url, 
-                p.asin, 
-                d.discount_pct_90d, 
-                d.price_current, 
-                d.price_median_90d, 
-                d.category_slug,
-                d.hot_score, 
-                d.rating, 
-                d.review_count,
-                d.score,
-                d.ingested_at
-            FROM deals d
-            JOIN products p ON p.asin = d.asin
-            WHERE d.is_active = true 
-              AND d.category_slug = :slug
-            ORDER BY d.asin, d.discount_pct_90d DESC NULLS LAST
+            SELECT * FROM (
+                SELECT DISTINCT ON (d.asin)
+                    p.title,
+                    p.image_url,
+                    p.asin,
+                    d.discount_pct_90d,
+                    d.price_current,
+                    d.price_median_90d,
+                    d.category_slug,
+                    d.hot_score,
+                    d.rating,
+                    d.review_count,
+                    d.score,
+                    d.ingested_at
+                FROM deals d
+                JOIN products p ON p.asin = d.asin
+                WHERE d.is_active = true
+                  AND d.category_slug = :slug
+                ORDER BY d.asin, d.discount_pct_90d DESC NULLS LAST
+            ) sub
+            ORDER BY discount_pct_90d DESC NULLS LAST
             LIMIT 3
         """), {"slug": slug}).mappings().all()
     

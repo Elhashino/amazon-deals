@@ -518,7 +518,7 @@ def run_ingestion_once():
         print("Removing duplicate deals...")
         dedup_result = db.execute(text("""
             DELETE FROM deals a USING deals b
-            WHERE a.id > b.id
+            WHERE a.id < b.id
             AND a.asin = b.asin
             AND a.category_slug = b.category_slug
             AND a.is_active = true
