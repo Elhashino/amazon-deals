@@ -368,7 +368,13 @@ async def debug_db():
             FROM deals WHERE is_active = true
             GROUP BY category_slug ORDER BY cnt DESC
         """)).mappings().all()
+        total_products = conn.execute(text("SELECT COUNT(*) FROM products")).scalar()
+        newest_product = conn.execute(text("SELECT MAX(last_seen_at) FROM products")).scalar()
+        total_snapshots = conn.execute(text("SELECT COUNT(*) FROM price_snapshots")).scalar()
+        newest_snapshot = conn.execute(text("SELECT MAX(captured_at) FROM price_snapshots")).scalar()
+        db_now = conn.execute(text("SELECT NOW()")).scalar()
     return {
+        "db_now_utc": str(db_now),
         "total_deals": total,
         "active_deals": active,
         "passing_discount_filter": passing_filter,
@@ -376,6 +382,10 @@ async def debug_db():
         "oldest_published_at": str(oldest),
         "newest_published_at": str(newest),
         "by_category": [dict(r) for r in by_category],
+        "total_products": total_products,
+        "newest_product_last_seen": str(newest_product),
+        "total_price_snapshots": total_snapshots,
+        "newest_snapshot_captured": str(newest_snapshot),
     }
 
 
