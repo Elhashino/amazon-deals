@@ -351,12 +351,14 @@ def run_ingestion_once():
                         asins.append(asin)
 
                 if not asins:
+                    print(f"  cat={include_cats} page={page}: 0 deal rows")
                     continue
 
                 # Preserve order but remove duplicates (can happen across pages)
                 asins = list(dict.fromkeys(asins))
 
                 products = client.products(asins) or []
+                print(f"  cat={include_cats} page={page}: {len(deal_rows)} deal rows → {len(asins)} ASINs → {len(products)} products from Keepa")
 
                 # Keepa can return products out-of-order or omit some ASINs. Map by ASIN.
                 product_by_asin: dict[str, dict] = {}
@@ -411,8 +413,9 @@ def run_ingestion_once():
                             metrics.confidence = 0.0
 
                     # Quality filters — balance between volume and not showing junk
-                    # Require at least 15 reviews — products with no review data are also excluded
-                    if metrics.review_count is None or metrics.review_count < 15:
+                    # Only skip if we have review data AND it's below threshold.
+                    # None means Keepa didn't return COUNT_REVIEWS for this product — let it through.
+                    if metrics.review_count is not None and metrics.review_count < 15:
                         continue
 
                     # Decent rating — filters out poor quality without being too strict
