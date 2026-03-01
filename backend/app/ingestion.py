@@ -468,6 +468,7 @@ def run_ingestion_once():
                     if existing:
                         # CRITICAL FIX: Use run_started_at for published_at to track this run
                         existing.published_at = run_started_at
+                        existing.ingested_at = datetime.now(timezone.utc)  # trigger only fires on INSERT, so set explicitly
                         existing.price_current = metrics.price_current
                         existing.price_median_90d = metrics.price_median_90d
                         existing.discount_pct_90d = metrics.discount_pct_90d
