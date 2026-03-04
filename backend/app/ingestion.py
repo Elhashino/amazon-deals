@@ -507,7 +507,7 @@ def run_ingestion_once():
                                 demand_score=metrics.demand_score,
                                 hot_score=metrics.hot_score,
                                 is_active=True,
-                                # ingested_at will be set by DB trigger
+                                ingested_at=datetime.now(timezone.utc),
                             )
                         )
                     
