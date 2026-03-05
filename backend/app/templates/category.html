@@ -67,7 +67,7 @@
     <!-- Price Notice -->
     <p class="text-gray-500 text-center mt-4 price-notice">* We update prices daily. Amazon's live price at purchase may be different</p>
     {% if featured_deals and featured_deals|length > 0 %}
-    <p class="text-xs text-gray-400 text-center mt-1">Updated {{ featured_deals[0].ingested_at|time_ago }}</p>
+    <p class="text-xs text-gray-400 text-center mt-1">Updated {{ last_updated|time_ago }}</p>
     {% endif %}
 </div>
 {% endif %}
@@ -156,7 +156,7 @@
 <!-- Price Notice -->
 <p class="text-gray-500 text-center mt-4 mb-2 price-notice">* We update prices daily. Amazon's live price at purchase may be different</p>
 {% if deals and deals|length > 0 %}
-<p class="text-xs text-gray-400 text-center mb-8">Updated {{ deals[0].ingested_at|time_ago }}</p>
+<p class="text-xs text-gray-400 text-center mb-8">Updated {{ last_updated|time_ago }}</p>
 {% endif %}
 {% else %}
 <div class="text-center py-16">

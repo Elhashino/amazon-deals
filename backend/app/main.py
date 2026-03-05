@@ -156,14 +156,19 @@ async def home(request: Request):
                     "name": name,
                     "deals": category_deals
                 })
-    
+
+        last_updated = conn.execute(text(
+            "SELECT MAX(ingested_at) FROM deals WHERE is_active = true"
+        )).scalar()
+
     return templates.TemplateResponse(
-        "home.html", 
+        "home.html",
         {
-            "request": request, 
+            "request": request,
             "featured_deals": featured_deals,
             "categories_with_deals": categories_with_deals,
-            "affiliate_tag": AFFILIATE_TAG
+            "affiliate_tag": AFFILIATE_TAG,
+            "last_updated": last_updated
         }
     )
 
@@ -197,16 +202,16 @@ async def sunniest_savings(request: Request):
         
         # Get top 3 for featured section (highest discount)
         featured_deals = conn.execute(text("""
-            SELECT 
-                p.title, 
-                p.image_url, 
-                p.asin, 
-                d.discount_pct_90d, 
-                d.price_current, 
-                d.price_median_90d, 
+            SELECT
+                p.title,
+                p.image_url,
+                p.asin,
+                d.discount_pct_90d,
+                d.price_current,
+                d.price_median_90d,
                 d.category_slug,
-                d.hot_score, 
-                d.rating, 
+                d.hot_score,
+                d.rating,
                 d.review_count,
                 d.score,
                 d.ingested_at
@@ -217,16 +222,21 @@ async def sunniest_savings(request: Request):
             ORDER BY d.discount_pct_90d DESC NULLS LAST
             LIMIT 3
         """)).mappings().all()
-    
+
+        last_updated = conn.execute(text(
+            "SELECT MAX(ingested_at) FROM deals WHERE is_active = true"
+        )).scalar()
+
     return templates.TemplateResponse(
-        "category.html", 
+        "category.html",
         {
-            "request": request, 
+            "request": request,
             "deals": deals,
             "featured_deals": featured_deals,
             "category": "sunniest-savings",
             "category_name": "Sunniest Savings",
-            "affiliate_tag": AFFILIATE_TAG
+            "affiliate_tag": AFFILIATE_TAG,
+            "last_updated": last_updated
         }
     )
 
@@ -307,18 +317,23 @@ async def category(request: Request, slug: str):
             ORDER BY discount_pct_90d DESC NULLS LAST
             LIMIT 3
         """), {"slug": slug}).mappings().all()
-    
+
+        last_updated = conn.execute(text(
+            "SELECT MAX(ingested_at) FROM deals WHERE is_active = true"
+        )).scalar()
+
     category_name = category_names.get(slug, slug.title())
-    
+
     return templates.TemplateResponse(
-        "category.html", 
+        "category.html",
         {
-            "request": request, 
-            "deals": deals, 
+            "request": request,
+            "deals": deals,
             "featured_deals": featured_deals,
             "category": slug,
             "category_name": category_name,
-            "affiliate_tag": AFFILIATE_TAG
+            "affiliate_tag": AFFILIATE_TAG,
+            "last_updated": last_updated
         }
     )
 
