@@ -413,9 +413,12 @@ def run_ingestion_once():
                             metrics.confidence = 0.0
 
                     # Quality filters — balance between volume and not showing junk
-                    # Only skip if we have review data AND it's below threshold.
-                    # None means Keepa didn't return COUNT_REVIEWS for this product — let it through.
-                    if metrics.review_count is not None and metrics.review_count < 15:
+                    # Require either known reviews >= 15, OR strong demand signals as fallback.
+                    # This prevents zero-review products (where Keepa returns None) slipping through,
+                    # while keeping genuinely popular products Keepa doesn't track reviews for.
+                    has_reviews = metrics.review_count is not None and metrics.review_count >= 15
+                    has_strong_demand = metrics.demand_score is not None and metrics.demand_score >= 40
+                    if not has_reviews and not has_strong_demand:
                         continue
 
                     # Decent rating — filters out poor quality without being too strict
