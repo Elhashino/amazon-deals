@@ -413,15 +413,14 @@ def run_ingestion_once():
                             metrics.confidence = 0.0
 
                     # Quality filters
-                    if metrics.review_count is not None:
-                        # Known review count: block low-review products unless demand is strong
-                        if metrics.review_count < 15 and (metrics.demand_score is None or metrics.demand_score < 40):
-                            continue
-                    else:
-                        # Keepa didn't return review count — not the same as zero reviews.
-                        # Require a minimal demand signal to filter out truly obscure products.
-                        if metrics.demand_score is None or metrics.demand_score < 15:
-                            continue
+                    # Only block products where we KNOW the review count is low.
+                    # review_count=None means Keepa didn't return the data, not that it has zero reviews.
+                    if metrics.review_count is not None and metrics.review_count < 15:
+                        continue
+                    # If Keepa returned neither a review count nor a rating, there's no evidence
+                    # of real customer reviews — skip these.
+                    if metrics.review_count is None and metrics.rating is None:
+                        continue
 
                     # Decent rating — filters out poor quality without being too strict
                     if metrics.rating is not None and metrics.rating < 3.5:
