@@ -415,11 +415,9 @@ def run_ingestion_once():
                     # Quality filters
                     # Only block products where we KNOW the review count is low.
                     # review_count=None means Keepa didn't return the data, not that it has zero reviews.
+                    # Do NOT filter on rating=None — Keepa's RATING timeseries is empty for most products
+                    # even when they have real Amazon ratings, so using it as a proxy blocks everything.
                     if metrics.review_count is not None and metrics.review_count < 15:
-                        continue
-                    # If Keepa returned neither a review count nor a rating, there's no evidence
-                    # of real customer reviews — skip these.
-                    if metrics.review_count is None and metrics.rating is None:
                         continue
 
                     # Decent rating — filters out poor quality without being too strict
