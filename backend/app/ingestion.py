@@ -339,6 +339,19 @@ def run_ingestion_once():
 
         deals_processed = 0
 
+        # Diagnostic counters — printed at end of run to guide filter decisions
+        diag = {
+            "total_fetched": 0,
+            "skip_no_price": 0,
+            "skip_low_discount": 0,
+            "skip_low_reviews": 0,
+            "skip_bad_rating": 0,
+            "skip_too_cheap": 0,
+            "has_sales_rank": 0,
+            "has_review_count": 0,
+            "has_rating": 0,
+        }
+
         for include_cats in include_lists:
             for page in range(settings.DEALS_PAGES_PER_ROOT_CATEGORY):
                 deals = client.deals(include_categories=include_cats, page=page)
@@ -399,10 +412,22 @@ def run_ingestion_once():
                     cat_slug = categorize(p, root_cat_name)
 
                     metrics = compute_deal_metrics(p)
+                    diag["total_fetched"] += 1
+
+                    # Track signal availability regardless of filters
+                    if metrics.sales_rank_current is not None:
+                        diag["has_sales_rank"] += 1
+                    if metrics.review_count is not None:
+                        diag["has_review_count"] += 1
+                    if metrics.rating is not None:
+                        diag["has_rating"] += 1
+
                     if metrics.discount_pct_90d is None:
+                        diag["skip_no_price"] += 1
                         continue
 
                     if metrics.discount_pct_90d < min_discount_for_category(cat_slug):
+                        diag["skip_low_discount"] += 1
                         continue
 
                     # If score still couldn't be computed, synthesise a simple fallback
@@ -418,14 +443,17 @@ def run_ingestion_once():
                     # Do NOT filter on rating=None — Keepa's RATING timeseries is empty for most products
                     # even when they have real Amazon ratings, so using it as a proxy blocks everything.
                     if metrics.review_count is not None and metrics.review_count < 15:
+                        diag["skip_low_reviews"] += 1
                         continue
 
                     # Decent rating — filters out poor quality without being too strict
                     if metrics.rating is not None and metrics.rating < 3.5:
+                        diag["skip_bad_rating"] += 1
                         continue
-                    
+
                     # Skip suspiciously cheap products (likely pricing errors or scams)
                     if metrics.price_current is not None and metrics.price_current < 0.50:
+                        diag["skip_too_cheap"] += 1
                         continue
 
                     # Ensure Product exists first (FK safety)
@@ -515,6 +543,21 @@ def run_ingestion_once():
                     
                     deals_processed += 1
 
+        n = diag["total_fetched"] or 1  # avoid div/0
+        print(f"\n--- Diagnostic Report ---")
+        print(f"Products fetched from Keepa:  {diag['total_fetched']}")
+        print(f"Signal availability:")
+        print(f"  has sales_rank:   {diag['has_sales_rank']:4d} / {diag['total_fetched']} ({100*diag['has_sales_rank']//n}%)")
+        print(f"  has review_count: {diag['has_review_count']:4d} / {diag['total_fetched']} ({100*diag['has_review_count']//n}%)")
+        print(f"  has rating:       {diag['has_rating']:4d} / {diag['total_fetched']} ({100*diag['has_rating']//n}%)")
+        print(f"Filter drops:")
+        print(f"  no price data:    {diag['skip_no_price']}")
+        print(f"  discount < min:   {diag['skip_low_discount']}")
+        print(f"  review_count < 15:{diag['skip_low_reviews']}")
+        print(f"  rating < 3.5:     {diag['skip_bad_rating']}")
+        print(f"  price < £0.50:    {diag['skip_too_cheap']}")
+        print(f"  PASSED all:       {deals_processed}")
+        print(f"-------------------------")
         print(f"\nProcessed {deals_processed} deals in this run")
 
         # Flush ORM changes before raw SQL deletes to avoid StaleDataError
