@@ -344,6 +344,7 @@ def run_ingestion_once():
             "total_fetched": 0,
             "skip_no_price": 0,
             "skip_low_discount": 0,
+            "skip_no_sales_rank": 0,
             "skip_low_reviews": 0,
             "skip_bad_rating": 0,
             "skip_too_cheap": 0,
@@ -438,6 +439,13 @@ def run_ingestion_once():
                             metrics.confidence = 0.0
 
                     # Quality filters
+                    # No sales rank = product has never had meaningful Amazon sales = almost certainly
+                    # has 0 real customer reviews. Confirmed Mar 10 2026: all 144 active deals had
+                    # NULL sales_rank, and spot-checking Amazon showed 0% on every star rating.
+                    if metrics.sales_rank_current is None:
+                        diag["skip_no_sales_rank"] += 1
+                        continue
+
                     # Only block products where we KNOW the review count is low.
                     # review_count=None means Keepa didn't return the data, not that it has zero reviews.
                     # Do NOT filter on rating=None — Keepa's RATING timeseries is empty for most products
@@ -553,6 +561,7 @@ def run_ingestion_once():
         print(f"Filter drops:")
         print(f"  no price data:    {diag['skip_no_price']}")
         print(f"  discount < min:   {diag['skip_low_discount']}")
+        print(f"  no sales rank:    {diag['skip_no_sales_rank']}")
         print(f"  review_count < 15:{diag['skip_low_reviews']}")
         print(f"  rating < 3.5:     {diag['skip_bad_rating']}")
         print(f"  price < £0.50:    {diag['skip_too_cheap']}")

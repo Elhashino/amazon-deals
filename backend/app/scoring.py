@@ -226,8 +226,9 @@ def compute_deal_metrics(product: dict[str, Any]) -> DealMetrics:
 
     rating_raw = _as_float_array(data.get("RATING"))
     rating_t = _as_time_array(data.get("RATING_time"))
-    rating_current_raw = _last_valid(rating_raw, invalid_leq=0)
-    rating = (rating_current_raw / 10.0) if rating_current_raw is not None else None
+    # keepa library already converts raw API values (0-50) to star scale (0-5) via (raw/100)*10
+    # Do NOT divide by 10 again — confirmed Mar 10 2026
+    rating = _last_valid(rating_raw, invalid_leq=0)
 
     reviews_raw = _as_float_array(data.get("COUNT_REVIEWS"))
     reviews_t = _as_time_array(data.get("COUNT_REVIEWS_time"))
