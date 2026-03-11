@@ -551,6 +551,10 @@ def run_ingestion_once():
                     
                     deals_processed += 1
 
+                # Commit after each page — releases the DB connection back to the pool
+                # during Keepa token waits, preventing Railway's proxy from killing idle connections.
+                db.commit()
+
         n = diag["total_fetched"] or 1  # avoid div/0
         print(f"\n--- Diagnostic Report ---")
         print(f"Products fetched from Keepa:  {diag['total_fetched']}")
