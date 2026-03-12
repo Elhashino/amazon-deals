@@ -91,8 +91,15 @@
                     <span class="text-sm md:text-2xl font-bold text-orange-600">£{{ "%.2f"|format(deal.price_current or 0) }}</span>
                     <span class="text-xs text-gray-500 line-through">£{{ "%.2f"|format(deal.price_median_90d or 0) }}</span>
                 </div>
-                <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}" 
-                   target="_blank" 
+                {% if deal.rating %}
+                <div class="flex items-center gap-1 mb-1 md:mb-2">
+                    <span class="text-yellow-500 text-xs">⭐</span>
+                    <span class="text-xs font-semibold">{{ "%.1f"|format(deal.rating) }}</span>
+                    <span class="text-xs text-gray-500">({{ deal.review_count or 0 }})</span>
+                </div>
+                {% endif %}
+                <a href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}"
+                   target="_blank"
                    rel="noopener sponsored"
                    class="block w-full bg-black text-white text-center py-1.5 md:py-3 rounded-lg font-bold text-xs md:text-sm hover:bg-gray-800 transition mt-auto">
                     View Deal on Amazon →

@@ -352,7 +352,6 @@ async def search(request: Request, q: str = ""):
                 FROM deals d
                 JOIN products p ON p.asin = d.asin
                 WHERE d.is_active = true
-                AND d.discount_pct_90d >= 0.25
                 AND p.title ILIKE :query
                 ORDER BY d.hot_score DESC NULLS LAST
                 LIMIT 100
