@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{% if query %}Search results for "{{ query }}"{% else %}Search Deals{% endif %} - Sunblessed Savings{% endblock %}
+
+{% block meta_description %}Search Amazon UK deals on Sunblessed Savings. Find discounts on {{ query if query else 'all products' }} updated daily.{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <nav class="text-sm text-gray-500 mb-4">
+        <a href="/" class="hover:text-orange-600">Home</a>
+        <span class="mx-2">›</span>
+        <span class="text-gray-900 font-medium">Search</span>
+    </nav>
+
+    {% if query %}
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+        Results for "{{ query }}"
+    </h1>
+    <p class="text-gray-600">
+        {% if deals %}
+            <span class="font-bold text-orange-600">{{ deals|length }}</span> deals found
+        {% else %}
+            No deals found — try a different search term
+        {% endif %}
+    </p>
+    {% else %}
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Search Deals</h1>
+    <p class="text-gray-600">Use the search bar above to find deals</p>
+    {% endif %}
+</div>
+
+{% if deals %}
+<div class="grid grid-cols-3 gap-2 md:gap-6">
+    {% for deal in deals %}
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition duration-200 flex flex-col">
+        <div class="relative bg-gray-50 p-1 md:p-4 h-20 md:h-56 flex items-center justify-center">
+            <img
+                src="{{ deal.image_url if deal.image_url else '/static/images/placeholder.png' }}"
+                alt="{{ deal.title }}"
+                class="max-h-full max-w-full object-contain"
+                onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23f0f0f0%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27 font-family=%27Arial%27 font-size=%2716%27%3ENo Image%3C/text%3E%3C/svg%3E'"
+            >
+            {% if deal.discount_pct_90d %}
+            <div class="absolute top-1 right-1 bg-red-600 text-white px-1 md:px-3 py-0.5 md:py-1 rounded-full font-bold text-xs shadow-lg">
+                {{ (deal.discount_pct_90d * 100)|round|int }}%
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="p-1.5 md:p-4 flex-grow flex flex-col">
+            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2 text-xs leading-tight">
+                {{ deal.title }}
+            </h3>
+
+            <div class="mb-1 md:mb-2">
+                {% if deal.price_current %}
+                <div class="flex flex-col md:flex-row md:items-baseline md:gap-2">
+                    <span class="text-sm md:text-2xl font-bold text-gray-900">
+                        £{{ "%.2f"|format(deal.price_current) }}
+                    </span>
+                    {% if deal.price_median_90d %}
+                    <span class="text-xs text-gray-500 line-through">
+                        £{{ "%.2f"|format(deal.price_median_90d) }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if deal.price_median_90d and deal.price_current %}
+                <p class="text-xs text-green-600 font-medium hidden md:block">
+                    Save £{{ "%.2f"|format(deal.price_median_90d - deal.price_current) }}
+                </p>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            {% if deal.rating and deal.review_count %}
+            <div class="flex items-center gap-1 text-xs text-gray-600 mb-1">
+                <span class="text-yellow-500">⭐</span>
+                <span class="font-medium">{{ "%.1f"|format(deal.rating) }}</span>
+                <span class="text-gray-400">({{ deal.review_count }})</span>
+            </div>
+            {% endif %}
+
+            <a
+                href="https://www.amazon.co.uk/dp/{{ deal.asin }}?tag={{ affiliate_tag }}"
+                target="_blank"
+                rel="noopener nofollow"
+                class="block w-full bg-black text-white text-center py-1.5 md:py-3 rounded-lg font-bold text-xs md:text-base hover:bg-gray-800 transition mt-auto"
+            >
+                View Deal on Amazon →
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<p class="text-gray-500 text-center mt-4 mb-2 price-notice">* We update prices daily. Amazon's live price at purchase may be different</p>
+
+{% elif query %}
+<div class="text-center py-16">
+    <p class="text-2xl text-gray-500 mb-2">No deals found for "{{ query }}"</p>
+    <p class="text-gray-400 mb-6">Try searching for something else, or browse by category</p>
+    <a href="/" class="text-orange-600 hover:text-orange-700 font-semibold">
+        ← Browse all deals
+    </a>
+</div>
+{% endif %}
+{% endblock %}

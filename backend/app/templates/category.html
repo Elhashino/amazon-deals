@@ -50,7 +50,7 @@
                 {% if deal.rating %}
                 <div class="flex items-center gap-1 mb-1">
                     <span class="text-yellow-500 text-xs">⭐</span>
-                    <span class="text-xs font-semibold">{{ "%.1f"|format(deal.rating * 10) }}</span>
+                    <span class="text-xs font-semibold">{{ "%.1f"|format(deal.rating) }}</span>
                     <span class="text-xs text-gray-500">({{ deal.review_count or 0 }})</span>
                 </div>
                 {% endif %}
@@ -135,7 +135,7 @@
             {% if deal.rating and deal.review_count %}
             <div class="flex items-center gap-1 text-xs text-gray-600 mb-1">
                 <span class="text-yellow-500">⭐</span>
-                <span class="font-medium">{{ "%.1f"|format(deal.rating * 10) }}</span>
+                <span class="font-medium">{{ "%.1f"|format(deal.rating) }}</span>
                 <span class="text-gray-400">({{ deal.review_count }})</span>
             </div>
             {% endif %}

@@ -90,6 +90,16 @@
                 </button>
             </div>
             
+            <!-- Search Bar -->
+            <form action="/search" method="get" class="mt-2 flex gap-2">
+                <input type="text" name="q" placeholder="Search deals... e.g. dog food, headphones, toys"
+                    value="{{ request.query_params.get('q', '') }}"
+                    class="flex-grow border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400">
+                <button type="submit" class="bg-orange-600 text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-orange-700 transition whitespace-nowrap">
+                    🔍 Search
+                </button>
+            </form>
+
             <!-- Mobile Navigation -->
 <div id="mobile-menu" class="hidden md:hidden mt-4 space-y-2">
     <a href="/category/sunniest-savings" class="block text-gray-600 hover:text-orange-600 py-2 flex items-center gap-2">

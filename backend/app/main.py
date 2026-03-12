@@ -338,6 +338,34 @@ async def category(request: Request, slug: str):
     )
 
 
+@app.get("/search", response_class=HTMLResponse)
+async def search(request: Request, q: str = ""):
+    """Search deals by product title across all categories"""
+    deals = []
+    if q.strip():
+        with engine.connect() as conn:
+            deals = conn.execute(text("""
+                SELECT p.title, p.image_url, p.asin,
+                    d.discount_pct_90d, d.price_current, d.price_median_90d,
+                    d.category_slug, d.hot_score, d.rating, d.review_count,
+                    d.score, d.ingested_at
+                FROM deals d
+                JOIN products p ON p.asin = d.asin
+                WHERE d.is_active = true
+                AND d.discount_pct_90d >= 0.25
+                AND p.title ILIKE :query
+                ORDER BY d.hot_score DESC NULLS LAST
+                LIMIT 100
+            """), {"query": f"%{q}%"}).mappings().all()
+
+    return templates.TemplateResponse("search.html", {
+        "request": request,
+        "deals": deals,
+        "query": q,
+        "affiliate_tag": AFFILIATE_TAG,
+    })
+
+
 @app.get("/about", response_class=HTMLResponse)
 async def about(request: Request):
     """About page"""
