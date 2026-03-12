@@ -136,7 +136,7 @@
         <!-- Category Deals Grid -->
         <div class="grid grid-cols-3 gap-2 md:gap-4">
             {% for deal in category.deals %}
-            <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
+            <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full border border-orange-200">
                 <div class="relative">
                     <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-20 md:h-40 object-contain p-1 md:p-2">
                     <div class="absolute top-1 right-1 bg-red-600 text-white px-1 md:px-2 py-0.5 md:py-1 rounded-full text-xs font-bold">

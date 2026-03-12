@@ -32,7 +32,7 @@
 {% if deals %}
 <div class="grid grid-cols-3 gap-2 md:gap-6">
     {% for deal in deals %}
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition duration-200 flex flex-col">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition duration-200 flex flex-col border border-orange-200">
         <div class="relative bg-gray-50 p-1 md:p-4 h-20 md:h-56 flex items-center justify-center">
             <img
                 src="{{ deal.image_url if deal.image_url else '/static/images/placeholder.png' }}"
