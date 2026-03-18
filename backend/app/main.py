@@ -173,22 +173,33 @@ async def home(request: Request):
     )
 
 
+SORT_ORDER_MAP = {
+    "best":       "(discount_pct_90d * 0.5 + COALESCE(rating, 0) / 5.0 * 0.3 + LEAST(LN(GREATEST(review_count, 1)) / 10.0, 1.0) * 0.2) DESC NULLS LAST",
+    "discount":   "discount_pct_90d DESC NULLS LAST",
+    "price_low":  "price_current ASC NULLS LAST",
+    "price_high": "price_current DESC NULLS LAST",
+    "rating":     "rating DESC NULLS LAST",
+    "newest":     "ingested_at DESC NULLS LAST",
+}
+
+
 @app.get("/category/sunniest-savings", response_class=HTMLResponse)
-async def sunniest_savings(request: Request):
+async def sunniest_savings(request: Request, sort: str = "best"):
     """Sunniest Savings - Best discounts across all categories"""
+    order_by = SORT_ORDER_MAP.get(sort, SORT_ORDER_MAP["best"])
     with engine.connect() as conn:
         # Get all sunniest deals
-        deals = conn.execute(text("""
-            SELECT 
-                p.title, 
-                p.image_url, 
-                p.asin, 
-                d.discount_pct_90d, 
-                d.price_current, 
-                d.price_median_90d, 
+        deals = conn.execute(text(f"""
+            SELECT
+                p.title,
+                p.image_url,
+                p.asin,
+                d.discount_pct_90d,
+                d.price_current,
+                d.price_median_90d,
                 d.category_slug,
-                d.hot_score, 
-                d.rating, 
+                d.hot_score,
+                d.rating,
                 d.review_count,
                 d.score,
                 d.ingested_at
@@ -196,7 +207,7 @@ async def sunniest_savings(request: Request):
             JOIN products p ON p.asin = d.asin
             WHERE d.is_active = true
             AND d.discount_pct_90d >= 0.25
-            ORDER BY d.hot_score DESC NULLS LAST
+            ORDER BY {order_by}
             LIMIT 100
         """)).mappings().all()
         
@@ -236,15 +247,16 @@ async def sunniest_savings(request: Request):
             "category": "sunniest-savings",
             "category_name": "Sunniest Savings",
             "affiliate_tag": AFFILIATE_TAG,
-            "last_updated": last_updated
+            "last_updated": last_updated,
+            "sort": sort
         }
     )
 
 
 @app.get("/category/{slug}", response_class=HTMLResponse)
-async def category(request: Request, slug: str):
+async def category(request: Request, slug: str, sort: str = "best"):
     """Category page showing filtered deals"""
-    
+
     # Category display names
     category_names = {
         "beauty": "Beauty",
@@ -261,9 +273,10 @@ async def category(request: Request, slug: str):
         "electrical": "Electronics"
     }
     
+    order_by = SORT_ORDER_MAP.get(sort, SORT_ORDER_MAP["best"])
     with engine.connect() as conn:
         # Get all deals for this category
-        deals = conn.execute(text("""
+        deals = conn.execute(text(f"""
             SELECT * FROM (
                 SELECT DISTINCT ON (d.asin)
                     p.title,
@@ -287,9 +300,7 @@ async def category(request: Request, slug: str):
                      COALESCE(d.rating, 0) / 5.0 * 0.3 +
                      LEAST(LN(GREATEST(d.review_count, 1)) / 10.0, 1.0) * 0.2) DESC
             ) sub
-            ORDER BY (discount_pct_90d * 0.5 +
-                      COALESCE(rating, 0) / 5.0 * 0.3 +
-                      LEAST(LN(GREATEST(review_count, 1)) / 10.0, 1.0) * 0.2) DESC
+            ORDER BY {order_by}
         """), {"slug": slug}).mappings().all()
 
         # Get top 3 for featured section (highest discount)
@@ -333,7 +344,8 @@ async def category(request: Request, slug: str):
             "category": slug,
             "category_name": category_name,
             "affiliate_tag": AFFILIATE_TAG,
-            "last_updated": last_updated
+            "last_updated": last_updated,
+            "sort": sort
         }
     )
 
