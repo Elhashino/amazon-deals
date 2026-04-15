@@ -66,8 +66,7 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 
-# Amazon affiliate tag - UPDATE THIS WITH YOUR TAG!
-AFFILIATE_TAG = os.getenv("AMAZON_AFFILIATE_TAG", "yoursite-21")
+AFFILIATE_TAG = settings.AMAZON_ASSOC_TAG
 
 
 @app.get("/", response_class=HTMLResponse)

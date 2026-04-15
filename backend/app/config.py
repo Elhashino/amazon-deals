@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     # Ingestion controls
     DEALS_PAGES_PER_ROOT_CATEGORY: int = 5
 
+    # Amazon Associates
+    AMAZON_ASSOC_TAG: str = "sunblessedsav-21"
+
     # Minimum discount thresholds per category slug
     MIN_DISCOUNT_HOME: float = 0.15
     MIN_DISCOUNT_KITCHEN: float = 0.15
