@@ -66,7 +66,7 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 
-AFFILIATE_TAG = settings.AMAZON_ASSOC_TAG
+AFFILIATE_TAG = os.getenv("AMAZON_ASSOC_TAG", "sunblessedsav-21")
 
 
 @app.get("/", response_class=HTMLResponse)
