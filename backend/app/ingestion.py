@@ -473,7 +473,7 @@ def run_ingestion_once():
 
                     prod.title = title
                     prod.brand = brand
-                    prod.image_url = image_url or ""  # NOT NULL safe
+                    prod.image_url = image_url or prod.image_url or ""  # keep existing if Keepa returns none
                     prod.root_category_id = int(root_cat_id) if root_cat_id else None
                     prod.root_category_name = root_cat_name
                     prod.last_seen_at = run_started_at
