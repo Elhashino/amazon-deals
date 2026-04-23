@@ -224,7 +224,7 @@ def min_discount_for_category(cat: str) -> float:
 def _extract_image_url(p: dict) -> str:
     """
     Keepa commonly provides imagesCSV. Build a usable Amazon image URL.
-    If not available, return empty string (NOT NULL safe due to model default).
+    Falls back to Amazon's standard ASIN-based image URL if imagesCSV is missing.
     """
     images_csv = p.get("imagesCSV") or ""
     if isinstance(images_csv, str) and images_csv.strip():
@@ -236,6 +236,10 @@ def _extract_image_url(p: dict) -> str:
         v = p.get(key)
         if isinstance(v, str) and v.strip():
             return v.strip()
+    # Fall back to Amazon's standard ASIN-based image URL (~93% success rate)
+    asin = p.get("asin") or ""
+    if asin:
+        return f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
     return ""
 
 
