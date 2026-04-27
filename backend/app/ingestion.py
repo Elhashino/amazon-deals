@@ -223,19 +223,30 @@ def min_discount_for_category(cat: str) -> float:
 
 def _extract_image_url(p: dict) -> str:
     """
-    Keepa commonly provides imagesCSV. Build a usable Amazon image URL.
-    Falls back to Amazon's standard ASIN-based image URL if imagesCSV is missing.
+    Extract a product image URL from a Keepa product dict.
+    Keepa API v2 moved from imagesCSV to a structured images array.
+    Falls back to Amazon's standard ASIN-based image URL if nothing else works.
     """
+    # New Keepa API v2 format: images array of dicts with 'path' key
+    images = p.get("images")
+    if isinstance(images, list) and images:
+        path = images[0].get("path") if isinstance(images[0], dict) else None
+        if path:
+            return f"https://m.media-amazon.com/images/I/{path}"
+
+    # Old format: imagesCSV comma-separated filenames
     images_csv = p.get("imagesCSV") or ""
     if isinstance(images_csv, str) and images_csv.strip():
         first = images_csv.split(",")[0].strip()
         if first:
             return f"https://m.media-amazon.com/images/I/{first}"
+
     # Some clients may provide direct fields
     for key in ("imageUrl", "imageURL", "image", "image_url"):
         v = p.get(key)
         if isinstance(v, str) and v.strip():
             return v.strip()
+
     # Fall back to Amazon's standard ASIN-based image URL (~93% success rate)
     asin = p.get("asin") or ""
     if asin:

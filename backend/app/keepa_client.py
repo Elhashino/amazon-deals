@@ -75,6 +75,8 @@ class KeepaClient:
                 days=180,
                 # wait for tokens if needed instead of failing
                 wait=True,
+                # explicitly request image data (Keepa API v2 moved from imagesCSV to images array)
+                extra_params={"images": 1},
             )
             # keepa returns a list of product dicts
             out.extend(resp or [])
