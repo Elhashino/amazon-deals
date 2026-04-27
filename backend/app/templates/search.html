@@ -35,10 +35,10 @@
     <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition duration-200 flex flex-col border border-orange-200">
         <div class="relative bg-gray-50 p-1 md:p-4 h-20 md:h-56 flex items-center justify-center">
             <img
-                src="{{ deal.image_url if deal.image_url else '/static/images/placeholder.png' }}"
+                src="{{ deal.image_url }}"
                 alt="{{ deal.title }}"
                 class="max-h-full max-w-full object-contain"
-                onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23f0f0f0%27 width=%27200%27 height=%27200%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27 fill=%27%23999%27 font-family=%27Arial%27 font-size=%2716%27%3ENo Image%3C/text%3E%3C/svg%3E'"
+                onload="dealImgLoad(this)" onerror="dealImgError(this)"
             >
             {% if deal.discount_pct_90d %}
             <div class="absolute top-1 right-1 bg-red-600 text-white px-1 md:px-3 py-0.5 md:py-1 rounded-full font-bold text-xs shadow-lg">

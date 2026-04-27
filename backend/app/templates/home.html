@@ -80,7 +80,7 @@
         {% for deal in featured_deals %}
         <div class="bg-white rounded-xl shadow-lg overflow-hidden transition border-2 border-orange-300 flex flex-col">
             <div class="relative">
-                <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-20 md:h-48 object-contain p-1 md:p-4 bg-white">
+                <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-20 md:h-48 object-contain p-1 md:p-4 bg-white" onload="dealImgLoad(this)" onerror="dealImgError(this)">
                 <div class="absolute top-1 right-1 bg-red-600 text-white px-1 md:px-3 py-0.5 md:py-1 rounded-full font-bold text-xs md:text-lg shadow-lg">
                     {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}%
                 </div>
@@ -138,7 +138,7 @@
             {% for deal in category.deals %}
             <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full border border-orange-200">
                 <div class="relative">
-                    <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-20 md:h-40 object-contain p-1 md:p-2">
+                    <img src="{{ deal.image_url }}" alt="{{ deal.title }}" class="w-full h-20 md:h-40 object-contain p-1 md:p-2" onload="dealImgLoad(this)" onerror="dealImgError(this)">
                     <div class="absolute top-1 right-1 bg-red-600 text-white px-1 md:px-2 py-0.5 md:py-1 rounded-full text-xs font-bold">
                         {{ "%.0f"|format((deal.discount_pct_90d or 0) * 100) }}%
                     </div>

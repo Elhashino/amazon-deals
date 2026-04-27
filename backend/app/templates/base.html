@@ -49,6 +49,11 @@
     </style>
     
     {% block extra_head %}{% endblock %}
+    <script>
+        const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Cpath d='M80 60h40a10 10 0 0110 10v60a10 10 0 01-10 10H80a10 10 0 01-10-10V70a10 10 0 0110-10z' fill='%23e5e7eb'/%3E%3Ccircle cx='90' cy='85' r='8' fill='%23d1d5db'/%3E%3Cpath d='M70 120l25-25 15 15 10-10 20 20H70z' fill='%23d1d5db'/%3E%3C/svg%3E";
+        function dealImgLoad(img) { if (img.naturalWidth < 5) img.src = PLACEHOLDER; }
+        function dealImgError(img) { img.onerror = null; img.src = PLACEHOLDER; }
+    </script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Navigation -->
