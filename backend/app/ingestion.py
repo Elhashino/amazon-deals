@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import urllib.request
 from datetime import datetime, timezone
 from sqlalchemy import select, text
 
@@ -9,6 +10,19 @@ from .models import Product, PriceSnapshot, Deal
 from .keepa_client import KeepaClient
 from .scoring import compute_deal_metrics
 from .config import settings
+
+
+def _verify_image_url(url: str) -> bool:
+    """HEAD-check an image URL. Amazon returns ~43-byte placeholders for missing images."""
+    if not url:
+        return False
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}, method="HEAD")
+        with urllib.request.urlopen(req, timeout=5) as r:
+            size = int(r.headers.get("Content-Length", 0))
+            return size >= 500
+    except Exception:
+        return False
 
 
 def _norm(s: str) -> str:
@@ -247,10 +261,13 @@ def _extract_image_url(p: dict) -> str:
         if isinstance(v, str) and v.strip():
             return v.strip()
 
-    # Fall back to Amazon's standard ASIN-based image URL (~93% success rate)
+    # Fall back to Amazon's standard ASIN-based image URL — but verify it works,
+    # since Amazon returns 43-byte placeholders for ~21% of ASINs.
     asin = p.get("asin") or ""
     if asin:
-        return f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
+        fallback = f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
+        if _verify_image_url(fallback):
+            return fallback
     return ""
 
 
@@ -359,6 +376,7 @@ def run_ingestion_once():
             "total_fetched": 0,
             "skip_no_price": 0,
             "skip_low_discount": 0,
+            "skip_no_image": 0,
             "skip_no_sales_rank": 0,
             "skip_low_reviews": 0,
             "skip_bad_rating": 0,
@@ -417,6 +435,11 @@ def run_ingestion_once():
                     
                     brand = (p.get("brand") or "")[:200]
                     image_url = _extract_image_url(p)
+
+                    # Skip products with no usable image — site looks unprofessional otherwise
+                    if not image_url:
+                        diag["skip_no_image"] = diag.get("skip_no_image", 0) + 1
+                        continue
 
                     root_cat_id = p.get("rootCategory")
                     root_cat_name = ""
@@ -580,6 +603,7 @@ def run_ingestion_once():
         print(f"Filter drops:")
         print(f"  no price data:    {diag['skip_no_price']}")
         print(f"  discount < min:   {diag['skip_low_discount']}")
+        print(f"  no usable image:  {diag['skip_no_image']}")
         print(f"  no sales rank:    {diag['skip_no_sales_rank']}")
         print(f"  review_count < 15:{diag['skip_low_reviews']}")
         print(f"  rating < 3.5:     {diag['skip_bad_rating']}")
