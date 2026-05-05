@@ -47,6 +47,7 @@ def resolve_root_category_ids(roots: dict[str, dict]) -> dict[str, int]:
     targets = {
         # existing behaviour
         "home_kitchen": ["home", "kitchen"],
+        "home_garden": ["home", "garden"],
         "diy_tools": ["diy", "tools"],
         "toys_games": ["toys"],
         "electronics": ["electronics"],
@@ -136,6 +137,15 @@ def categorize(product: dict, root_name: str) -> str:
     if "automotive" in root or "motoring" in root or "vehicle" in root:
         return "automotive"
     
+    # HOME & GARDEN root — intercept before the generic garden check below.
+    # Without this, "garden" in the root name triggers has_garden_word=True and most
+    # products fall to "misc" without ever being evaluated for "kitchen".
+    if "home" in root and "garden" in root:
+        names = " ".join(_norm(n.get("name", "")) for n in category_tree if isinstance(n, dict))
+        if any(k in names for k in ["kitchen", "dining", "cookware", "bakeware", "utensils", "appliances"]):
+            return "kitchen"
+        return "misc"
+
     # GARDEN - Very strict: require "garden" in text OR garden-specific words only
     # Step 1: Check if "garden" or "gardening" appears anywhere
     has_garden_word = "garden" in all_text or "gardening" in all_text
@@ -327,7 +337,7 @@ def run_ingestion_once():
     # A = home/electronics/beauty/health side; B = grocery/pet/sports/baby/auto/garden side.
     # Leave unset (or empty) to run all categories (original behaviour).
     category_group = os.getenv("CATEGORY_GROUP", "").strip().upper()
-    GROUP_A = {"home_kitchen", "diy_tools", "toys_games", "electronics", "beauty", "health"}
+    GROUP_A = {"home_kitchen", "home_garden", "diy_tools", "toys_games", "electronics", "beauty", "health"}
     GROUP_B = {"grocery", "pet", "sports", "baby", "automotive", "garden"}
     if category_group == "A":
         root_ids = {k: v for k, v in root_ids.items() if k in GROUP_A}
