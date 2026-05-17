@@ -337,8 +337,8 @@ def run_ingestion_once():
     # A = home/electronics/beauty/health side; B = grocery/pet/sports/baby/auto/garden side.
     # Leave unset (or empty) to run all categories (original behaviour).
     category_group = os.getenv("CATEGORY_GROUP", "").strip().upper()
-    GROUP_A = {"home_kitchen", "home_garden", "diy_tools", "toys_games", "electronics", "beauty", "health"}
-    GROUP_B = {"grocery", "pet", "sports", "baby", "automotive", "garden"}
+    GROUP_A = {"home_kitchen", "diy_tools", "toys_games", "electronics", "beauty", "health"}
+    GROUP_B = {"grocery", "pet", "sports", "baby", "automotive", "garden", "home_garden"}
     if category_group == "A":
         root_ids = {k: v for k, v in root_ids.items() if k in GROUP_A}
         print(f"CATEGORY_GROUP=A — running: {list(root_ids.keys())}")
