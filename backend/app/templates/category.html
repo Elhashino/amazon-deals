@@ -16,9 +16,11 @@
     <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
         {{ category_name }} Deals
     </h1>
+    {% if category != 'misc' %}
     <p class="text-gray-600 max-w-2xl">
         Updated daily with the biggest Amazon UK {{ category_name }} discounts. We track prices across hundreds of {{ category_name }} products so you never miss a deal. All deals are verified price drops of at least 25% off the original price.
     </p>
+    {% endif %}
 </div>
 
 <!-- Featured Top 3 Deals -->
