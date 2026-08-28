@@ -39,7 +39,8 @@ class Alerter:
             "chat_id": self.chat_id,
             "text": html_text,
             "parse_mode": "HTML",
-            "disable_web_page_preview": True,
+            # Bot API 7.0+: disable_web_page_preview is deprecated
+            "link_preview_options": {"is_disabled": True},
         }
         try:
             resp = post_json(url, payload)

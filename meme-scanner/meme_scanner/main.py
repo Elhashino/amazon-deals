@@ -8,6 +8,7 @@ rejection log is the scanner's classroom.
 from __future__ import annotations
 
 import argparse
+import sys
 import time
 import traceback
 
@@ -45,6 +46,16 @@ def process_mint(mint: str, boosted: bool, cfg: Config, state: State, log: Rejec
     safety = rugcheck.get_safety(mint)
     if safety is None:
         return  # not indexed yet — defer, don't bin
+    if safety.mint_authority_active is None or safety.freeze_authority_active is None:
+        # RugCheck didn't say — read the ground truth off-chain data can't fake.
+        try:
+            mint_active, freeze_active = solana_rpc.get_mint_authorities(mint, cfg)
+            if safety.mint_authority_active is None:
+                safety.mint_authority_active = mint_active
+            if safety.freeze_authority_active is None:
+                safety.freeze_authority_active = freeze_active
+        except Exception as exc:
+            print(f"  [WARN] RPC authority check failed for {sym}: {exc}")
     outcome, reasons = check_safety(safety, cfg)
     if outcome is Outcome.REJECT:
         state.mark_seen(mint)
@@ -130,6 +141,12 @@ def run_cycle(cfg: Config, state: State, log: RejectionLog, alerter: Alerter) ->
 
 
 def main() -> None:
+    # Windows: with output redirected (e.g. Task Scheduler -> log file) stdout
+    # falls back to the legacy codepage and emoji in alerts would crash us.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="Solana meme-coin launch scanner with a kill-filter")
     parser.add_argument("--once", action="store_true", help="run a single cycle and exit")
     args = parser.parse_args()

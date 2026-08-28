@@ -74,8 +74,9 @@ add that .bat to Task Scheduler (Run at startup, restart on failure).
 Bundle detection uses the free public Solana RPC, which is heavily
 rate-limited — when it's saturated the scanner marks bundle data
 "unknown" rather than blocking. A free key from
-[dev.helius.xyz](https://dev.helius.xyz) in `.env` (`HELIUS_API_KEY=`)
-makes bundle checks fast and reliable.
+[dashboard.helius.dev](https://dashboard.helius.dev) (1M credits/month,
+10 req/s) in `.env` (`HELIUS_API_KEY=`) makes bundle checks fast and
+reliable.
 
 ## Tuning
 
