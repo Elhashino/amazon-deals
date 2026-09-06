@@ -33,6 +33,15 @@ CRITICAL_RISK_SUBSTRINGS = (
     "transfer fee",
 )
 
+# A pair whose creation timestamp sits slightly ahead of our clock is almost
+# always local clock drift, not bad data — an unsynced Windows box running a
+# minute slow makes every brand-new launch look like it comes from the future.
+# Those are the youngest coins on the feed, the ones this scanner exists to
+# catch, so they defer like any other too-young coin and get re-checked once
+# the clock has caught up. Only a timestamp too far ahead to explain that way
+# is treated as genuinely broken data.
+CLOCK_SKEW_TOLERANCE_MINUTES = 15.0
+
 
 class Outcome(Enum):
     PASS = "pass"
@@ -58,7 +67,13 @@ def check_market(cand: Candidate, cfg: Config) -> tuple[Outcome, list[str]]:
     if age_min is None:
         return Outcome.DEFER, ["pair age unknown (not indexed yet)"]
     if age_min < 0:
-        return Outcome.REJECT, ["pair timestamp is in the future"]
+        if age_min > -CLOCK_SKEW_TOLERANCE_MINUTES:
+            return Outcome.DEFER, [
+                f"pair timestamp {-age_min:.1f}m ahead of our clock (clock drift?)"
+            ]
+        return Outcome.REJECT, [
+            f"pair timestamp {-age_min / 60:.1f}h in the future (bad data)"
+        ]
     if age_min > cfg.max_pair_age_minutes:
         return Outcome.REJECT, [
             f"too old ({age_min / 60:.1f}h > {cfg.max_pair_age_minutes / 60:.0f}h)"
