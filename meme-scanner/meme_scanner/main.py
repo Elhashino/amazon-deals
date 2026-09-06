@@ -40,7 +40,15 @@ from .telegram import Alerter
 
 # Bound the per-cycle RPC spend. Deferred coins come back next cycle, and
 # a truncated cycle says so out loud rather than quietly covering less.
-MAX_EVALUATIONS_PER_CYCLE = 30
+#
+# The first gate reads batched DexScreener data — one request per 30 mints —
+# and rejects or defers the large majority, so raising this mostly buys cheap
+# coverage of the pending queue. The paid stages behind it are paced by the
+# RPC throttle rather than by this number, which puts a hard ceiling on spend
+# however high this goes. Coins graduate off the bonding curve hours after
+# launch, so a queue that takes longer to walk than that loses real
+# candidates to the pending TTL rather than to any filter.
+MAX_EVALUATIONS_PER_CYCLE = 120
 
 # How long a --once shakedown run waits for the live feed to receive its
 # first launches. Only used by --once; the continuous loop fills the feed
