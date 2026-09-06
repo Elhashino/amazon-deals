@@ -51,6 +51,19 @@ pump, a too-young coin, a boring one, and a good one — through the real
 filters, and prints exactly what each gets and why. No internet, no keys,
 no accounts. Do this before anything else.
 
+## Browse what got binned
+
+```
+python report.py              # last 7 days
+python report.py --days 1     # last 24 hours
+```
+
+Turns `data/rejections.csv` into a ranked summary: which stage each coin
+died at, and the specific reasons, most common first. To see the format
+before you have real data, `python demo.py --week` writes a simulated
+week for it to read (clearly marked as simulated — it overwrites
+`data/rejections.csv`, so don't run it once you have real logs).
+
 ## Setup (Windows, ~10 minutes)
 
 1. Install [Python 3.11+](https://www.python.org/downloads/) — tick

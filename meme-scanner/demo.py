@@ -10,6 +10,10 @@ Run it with:  python demo.py
 
 from __future__ import annotations
 
+import argparse
+import csv
+import datetime as dt
+import random
 import re
 import tempfile
 import time
@@ -139,6 +143,60 @@ def install_fake_market() -> None:
     )
 
 
+# --- a simulated week, for seeing what the report tool reads -------------
+# Mix and wording match what the real filters emit; the proportions follow
+# what published research says about Solana launches (the overwhelming
+# majority never graduate, and rugs dominate the failures).
+WEEK_MIX = [
+    ("safety", "mint authority still active (supply can be inflated)", 150),
+    ("safety", "LP only 0% locked/burned (< 80%)", 122),
+    ("safety", "critical risk flag: Mint Authority still enabled", 96),
+    ("safety", "top 10 wallets hold 61% (> 30%)", 88),
+    ("safety", "only 23 holders (< 100)", 71),
+    ("safety", "freeze authority still active (your wallet can be frozen)", 44),
+    ("safety", "one wallet holds 38% (> 15%)", 39),
+    ("safety", "RugCheck risk score 78 (> 40)", 31),
+    ("safety", "critical risk flag: Copycat token", 24),
+    ("safety", "already flagged as rugged", 12),
+    ("market", "liquidity $3,412 < $20,000", 168),
+    ("market", "too old (31.5h > 24h)", 57),
+    ("bundles", "bundled wallets hold 44% of supply across 6 wallets / 2 funding clusters (> 20%)", 93),
+    ("bundles", "bundled wallets hold 27% of supply across 9 wallets / 1 funding clusters (> 20%)", 41),
+    ("demand", "~7 unique traders (< 50)", 74),
+    ("demand", "wash-trading pattern: only 8% of sampled trades came from distinct wallets (< 30%)", 52),
+    ("score", "momentum score 34 < 60", 48),
+]
+
+
+def generate_week(days: int = 7) -> None:
+    """Write a plausible week into data/rejections.csv so report.py has
+    something to chew on. SIMULATED — not a record of real coins."""
+    from meme_scanner.config import Config as _Config
+
+    cfg = _Config.load()
+    path = __import__("pathlib").Path(cfg.data_dir)
+    path.mkdir(parents=True, exist_ok=True)
+    target = path / "rejections.csv"
+
+    rng = random.Random(20260906)
+    now = dt.datetime.now(dt.timezone.utc)
+    rows = []
+    for stage, reason, count in WEEK_MIX:
+        for _ in range(count):
+            when = now - dt.timedelta(seconds=rng.uniform(0, days * 86400))
+            sym = "".join(rng.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(rng.randint(3, 7)))
+            mint = "".join(rng.choice("abcdefghijkmnopqrstuvwxyz123456789") for _ in range(8)) + "pump"
+            rows.append([when.strftime("%Y-%m-%d %H:%M:%S"), mint, sym, stage, reason, ""])
+    rows.sort(key=lambda r: r[0])
+
+    with target.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["utc_time", "mint", "symbol", "stage", "reason", "detail"])
+        writer.writerows(rows)
+    print(f"Wrote {len(rows):,} SIMULATED rejections covering {days} days to {target}")
+    print("Now run:  python report.py\n")
+
+
 def main() -> None:
     print("=" * 68)
     print("  MEME-SCANNER DEMO — real filters, invented coins")
@@ -174,4 +232,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Meme-scanner demo (no network needed)")
+    parser.add_argument("--week", action="store_true",
+                        help="generate a simulated week of rejections for report.py")
+    opts = parser.parse_args()
+    if opts.week:
+        generate_week()
+    else:
+        main()
