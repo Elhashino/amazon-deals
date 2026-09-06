@@ -269,19 +269,28 @@ def main() -> None:
         print(f"[once] letting the live feed fill for {FEED_WARMUP_SECONDS:.0f}s before the cycle...")
         time.sleep(FEED_WARMUP_SECONDS)
 
-    while True:
-        started = time.monotonic()
-        try:
-            run_cycle(cfg, state, log, alerter, feed)
-        except Exception:
-            print("[ERROR] cycle failed, will retry next poll")
-            traceback.print_exc()
-        if args.once:
-            if feed is not None:
-                feed.stop()
-            break
-        elapsed = time.monotonic() - started
-        time.sleep(max(5.0, cfg.poll_seconds - elapsed))
+    # Ctrl+C is the documented way to stop a manually-started scanner, so it is
+    # an ordinary exit, not a fault. Report it as one — a traceback here reads
+    # as a crash and invites the reader to go looking for a bug that isn't
+    # there. Whatever the cycle learned is already on disk: run_cycle saves
+    # state in a finally block before the interrupt reaches this far.
+    try:
+        while True:
+            started = time.monotonic()
+            try:
+                run_cycle(cfg, state, log, alerter, feed)
+            except Exception:
+                print("[ERROR] cycle failed, will retry next poll")
+                traceback.print_exc()
+            if args.once:
+                break
+            elapsed = time.monotonic() - started
+            time.sleep(max(5.0, cfg.poll_seconds - elapsed))
+    except KeyboardInterrupt:
+        print("\n[stopped] scanner shut down — state and rejection log saved.")
+    finally:
+        if feed is not None:
+            feed.stop()
 
 
 if __name__ == "__main__":
