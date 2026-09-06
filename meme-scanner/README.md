@@ -148,11 +148,13 @@ TikTok, you can look up here and check which filter it failed.
 
 ## Honest limitations
 
-- **Discovery**: DexScreener has no public "newest pairs" feed, so
-  discovery polls its paid-profile/boost feeds plus RugCheck's
-  new-token stats. Teams that never buy any profile/boost and never get
-  indexed appear late or not at all — those are also disproportionately
-  the scams.
+- **Discovery is good for pump.fun, patchier elsewhere**: the live
+  websocket covers pump.fun launches in real time. Everything else —
+  letsbonk, Believe, Bags, Moonshot — is only found by polling, because
+  DexScreener has no public "newest pairs" feed and its profile/boost
+  lists only contain teams who paid. So a non-pump.fun launch whose team
+  never paid for promotion may be seen late or missed. If the live feed
+  is down, pump.fun coins fall back to that same slower path.
 - **Speed**: insiders and sniper bots are in at block one. This tool gets
   you in the first minutes with evidence, not the first seconds blind.
 - **False negatives survive**: passing every check means "not obviously
