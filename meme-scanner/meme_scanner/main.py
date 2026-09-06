@@ -42,6 +42,11 @@ from .telegram import Alerter
 # a truncated cycle says so out loud rather than quietly covering less.
 MAX_EVALUATIONS_PER_CYCLE = 30
 
+# How long a --once shakedown run waits for the live feed to receive its
+# first launches. Only used by --once; the continuous loop fills the feed
+# between cycles for free.
+FEED_WARMUP_SECONDS = 20.0
+
 
 def process_mint(
     cand: Candidate, cfg: Config, state: State, log: RejectionLog, alerter: Alerter
@@ -254,6 +259,15 @@ def main() -> None:
     print(f"filters: liq>=${cfg.min_liquidity_usd:,.0f} lp_lock>={cfg.min_lp_locked_pct:.0f}% "
           f"top10<={cfg.max_top10_holder_pct:.0f}% bundle<={cfg.max_bundle_pct:.0f}% "
           f"holders>={cfg.min_holders} traders>={cfg.min_unique_buyers_h1}")
+
+    # A single shakedown cycle would otherwise run before the websocket has
+    # had a chance to receive anything, always reporting "0 launches seen" and
+    # never exercising the live-feed path. Give it a moment so --once actually
+    # tests what it is meant to test. The continuous loop needs no such pause:
+    # the feed fills between cycles.
+    if args.once and feed is not None:
+        print(f"[once] letting the live feed fill for {FEED_WARMUP_SECONDS:.0f}s before the cycle...")
+        time.sleep(FEED_WARMUP_SECONDS)
 
     while True:
         started = time.monotonic()
