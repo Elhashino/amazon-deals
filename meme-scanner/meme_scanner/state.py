@@ -13,13 +13,14 @@ from pathlib import Path
 
 SEEN_TTL_SECONDS = 48 * 3600
 ALERTED_TTL_SECONDS = 14 * 24 * 3600
+PENDING_TTL_SECONDS = 26 * 3600  # a shade past the 24h max pair age
 
 
 class State:
     def __init__(self, data_dir: str) -> None:
         self.path = Path(data_dir) / "state.json"
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._data: dict = {"seen": {}, "alerted": {}, "watching": {}}
+        self._data: dict = {"seen": {}, "alerted": {}, "watching": {}, "pending": {}}
         if self.path.is_file():
             try:
                 loaded = json.loads(self.path.read_text(encoding="utf-8"))
@@ -44,6 +45,27 @@ class State:
     def mark_alerted(self, mint: str) -> None:
         self._data["alerted"][mint] = time.time()
 
+    # -- pending: launches seen live but still too young to judge --
+    def add_pending(self, mint: str, launched_at: float) -> bool:
+        """Remember a live launch. Returns True if it's new to us."""
+        if mint in self._data["pending"] or self.is_seen(mint) or self.is_alerted(mint):
+            return False
+        self._data["pending"][mint] = launched_at
+        return True
+
+    def ripe_pending(self, min_age_seconds: float) -> list[str]:
+        """Pending mints old enough to have numbers worth reading, oldest first."""
+        now = time.time()
+        ready = [
+            (ts, mint) for mint, ts in self._data["pending"].items()
+            if now - ts >= min_age_seconds and not self.is_seen(mint) and not self.is_alerted(mint)
+        ]
+        ready.sort()
+        return [mint for _, mint in ready]
+
+    def pending_count(self) -> int:
+        return len(self._data["pending"])
+
     # -- watching: alerted mints we re-check for a post-alert rug --
     def watch(self, mint: str, info: dict) -> None:
         self._data["watching"][mint] = {"since": time.time(), **info}
@@ -61,6 +83,12 @@ class State:
         }
         self._data["alerted"] = {
             m: ts for m, ts in self._data["alerted"].items() if now - ts < ALERTED_TTL_SECONDS
+        }
+        # Drop pending entries that aged out or have since been judged.
+        self._data["pending"] = {
+            m: ts for m, ts in self._data["pending"].items()
+            if now - ts < PENDING_TTL_SECONDS and m not in self._data["seen"]
+            and m not in self._data["alerted"]
         }
         tmp = self.path.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(self._data), encoding="utf-8")

@@ -16,6 +16,14 @@ to lose.
 
 ## The pipeline
 
+**How it finds coins.** Two ways at once. A free PumpPortal websocket
+pushes every new pump.fun launch the instant it's created — no key, no
+account — and the scanner holds each one until it's old enough to judge
+(a 10-second-old coin has no liquidity, holders or buyers worth reading).
+Alongside that it polls DexScreener's profile/boost feeds and RugCheck's
+new-token list, which catch launches from other platforms. If the
+websocket drops, polling carries on alone and the console says so.
+
 Each new token goes through four stages, cheapest first. Failing any hard
 check bins it permanently (logged in `data/rejections.csv`). Missing data
 defers it to the next poll — a 30-second-old coin isn't binned just
@@ -96,6 +104,25 @@ python scanner.py
 ```
 Or double-click `run_scanner.bat`. To make it a permanent Jarvis resident,
 add that .bat to Task Scheduler (Run at startup, restart on failure).
+
+### The live feed
+
+On by default, free, needs nothing from you. `pip install -r
+requirements.txt` includes the websocket library. Each cycle prints its
+state:
+
+```
+[cycle] 41 discovered, 12 to check, live feed live (338 launches seen): +26 new, 61 ripening, 4 ready
+```
+
+`ripening` = launches seen live but still too young to judge. `ready` =
+promoted into this cycle's checks. Set `ENABLE_PUMPPORTAL=0` in `.env` to
+turn it off.
+
+One caveat worth knowing: PumpPortal doesn't publish a spec for its
+message format, so the parser was built from real captured traffic and
+ignores any frame it doesn't recognise rather than guessing. If they
+change it, you lose the live feed, not the scanner.
 
 ### Optional: free Helius key
 

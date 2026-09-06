@@ -60,6 +60,10 @@ class Config:
     watch_hours: float = 12.0
     rug_liquidity_drop_pct: float = 60.0   # liq down this much since alert -> rug warning
 
+    # --- Live launch feed (free websocket, no key) ---
+    enable_pumpportal: int = 1             # 0 to turn the live feed off
+    pumpportal_url: str = "wss://pumpportal.fun/api/data"
+
     # --- Optional upgrades ---
     helius_api_key: str = ""               # better RPC limits for bundle checks
     solana_rpc_url: str = "https://api.mainnet-beta.solana.com"

@@ -22,7 +22,7 @@ import traceback
 from . import __version__
 from .alerts import format_alert, format_rug_warning
 from .analysis import bundles
-from .apis import dexscreener, rugcheck, solana_rpc
+from .apis import dexscreener, pumpportal, rugcheck, solana_rpc
 from .config import Config
 from .filters import (
     Outcome,
@@ -164,18 +164,40 @@ def check_watched(cfg: Config, state: State, alerter: Alerter) -> None:
             state.unwatch(mint)  # one warning, not spam
 
 
-def run_cycle(cfg: Config, state: State, log: RejectionLog, alerter: Alerter) -> int:
+def run_cycle(cfg: Config, state: State, log: RejectionLog, alerter: Alerter,
+              feed: pumpportal.LaunchFeed | None = None) -> int:
     """One poll cycle. Returns number of new mints evaluated."""
     try:
+        # Live launches arrive seconds after creation — far too young to
+        # judge — so they queue up and get promoted once they've aged into
+        # the window where their numbers mean something.
+        new_live = 0
+        if feed is not None:
+            now = time.time()
+            for mint in feed.drain():
+                if state.add_pending(mint, now):
+                    new_live += 1
+
         discovered = dexscreener.discover_mints()
         for mint in rugcheck.new_token_mints():
             discovered.setdefault(mint, False)
 
         fresh = [m for m in discovered if not state.is_seen(m) and not state.is_alerted(m)]
+        # Ripened live launches go first: they are the freshest real leads.
+        ripe = state.ripe_pending(cfg.min_pair_age_minutes * 60)
+        for mint in ripe:
+            if mint not in fresh:
+                fresh.insert(0, mint)
+                discovered.setdefault(mint, False)
+
         evaluating = fresh[:MAX_EVALUATIONS_PER_CYCLE]
         skipped = len(fresh) - len(evaluating)
-        print(f"[cycle] {len(discovered)} discovered, {len(fresh)} new"
-              + (f" ({skipped} deferred to next cycle — per-cycle cap)" if skipped else ""))
+        live_note = ""
+        if feed is not None:
+            live_note = (f", live feed {feed.status}: +{new_live} new, "
+                         f"{state.pending_count()} ripening, {len(ripe)} ready")
+        print(f"[cycle] {len(discovered)} discovered, {len(fresh)} to check{live_note}"
+              + (f" ({skipped} held over — per-cycle cap)" if skipped else ""))
 
         # One batched enrichment call per 30 mints, not one call per mint.
         candidates = dexscreener.get_candidates(evaluating)
@@ -220,8 +242,15 @@ def main() -> None:
     log = RejectionLog(cfg.data_dir)
     alerter = Alerter(cfg.telegram_bot_token, cfg.telegram_chat_id)
 
+    feed = None
+    if cfg.enable_pumpportal:
+        feed = pumpportal.LaunchFeed(cfg.pumpportal_url)
+        if not feed.start():
+            feed = None  # library missing — polling feeds still work
+
     print(f"meme-scanner v{__version__} | poll every {cfg.poll_seconds}s | "
-          f"telegram {'ON' if alerter.enabled else 'OFF (console mode)'}")
+          f"telegram {'ON' if alerter.enabled else 'OFF (console mode)'} | "
+          f"live feed {'ON' if feed else 'OFF'}")
     print(f"filters: liq>=${cfg.min_liquidity_usd:,.0f} lp_lock>={cfg.min_lp_locked_pct:.0f}% "
           f"top10<={cfg.max_top10_holder_pct:.0f}% bundle<={cfg.max_bundle_pct:.0f}% "
           f"holders>={cfg.min_holders} traders>={cfg.min_unique_buyers_h1}")
@@ -229,11 +258,13 @@ def main() -> None:
     while True:
         started = time.monotonic()
         try:
-            run_cycle(cfg, state, log, alerter)
+            run_cycle(cfg, state, log, alerter, feed)
         except Exception:
             print("[ERROR] cycle failed, will retry next poll")
             traceback.print_exc()
         if args.once:
+            if feed is not None:
+                feed.stop()
             break
         elapsed = time.monotonic() - started
         time.sleep(max(5.0, cfg.poll_seconds - elapsed))

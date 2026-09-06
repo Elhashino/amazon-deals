@@ -237,4 +237,4 @@ def test_per_cycle_cap_is_reported_not_silent(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(main_mod.rugcheck, "get_safety", lambda mint: None)
     evaluated = main_mod.run_cycle(cfg, state, log, alerter)
     assert evaluated == main_mod.MAX_EVALUATIONS_PER_CYCLE
-    assert "deferred to next cycle" in capsys.readouterr().out
+    assert "held over" in capsys.readouterr().out
