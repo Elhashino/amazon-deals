@@ -3,6 +3,13 @@
 Cheap checks run before expensive ones so the API budget goes on the few
 coins that deserve it. Every rejection is logged with its reason — the
 rejection log is the scanner's classroom.
+
+Two ordering rules earn their keep on an unattended box:
+  - a coin is only marked "seen" once we are done with it for good; a
+    transient failure (Telegram down, RugCheck not indexed) leaves it
+    eligible for the next cycle rather than binning it silently;
+  - state is saved as soon as an alert lands, not at the end of the
+    cycle, so a crash can't replay yesterday's alerts on restart.
 """
 
 from __future__ import annotations
@@ -17,21 +24,34 @@ from .alerts import format_alert, format_rug_warning
 from .analysis import bundles
 from .apis import dexscreener, rugcheck, solana_rpc
 from .config import Config
-from .filters import Outcome, check_bundles, check_demand, check_market, check_safety
-from .models import BundleReport
+from .filters import (
+    Outcome,
+    check_bundles,
+    check_demand,
+    check_market,
+    check_safety,
+    pair_age_minutes,
+)
+from .models import BundleReport, Candidate, DemandReport
 from .rejection_log import RejectionLog
 from .scoring import score
 from .state import State
 from .telegram import Alerter
 
+# Bound the per-cycle RPC spend. Deferred coins come back next cycle, and
+# a truncated cycle says so out loud rather than quietly covering less.
+MAX_EVALUATIONS_PER_CYCLE = 30
 
-def process_mint(mint: str, boosted: bool, cfg: Config, state: State, log: RejectionLog, alerter: Alerter) -> None:
-    """Run one token through the full pipeline. DEFER = stay quiet, retry next poll."""
-    cand = dexscreener.get_candidates([mint]).get(mint)
-    if cand is None:
-        return  # not on DexScreener yet; it'll come around again
-    cand.boosted = cand.boosted or boosted
-    sym = cand.symbol
+
+def process_mint(
+    cand: Candidate, cfg: Config, state: State, log: RejectionLog, alerter: Alerter
+) -> None:
+    """Run one candidate through the full pipeline.
+
+    DEFER at any stage = stay quiet and leave it unseen, so the next cycle
+    tries again. Only REJECT and a delivered alert mark a coin as seen.
+    """
+    mint, sym = cand.mint, cand.symbol
 
     # Stage 1: market hard-filter (free — already have the data).
     outcome, reasons = check_market(cand, cfg)
@@ -41,6 +61,7 @@ def process_mint(mint: str, boosted: bool, cfg: Config, state: State, log: Rejec
         return
     if outcome is Outcome.DEFER:
         return
+    age_min = pair_age_minutes(cand)
 
     # Stage 2: contract & holder safety (RugCheck, ~1 req/sec budget).
     safety = rugcheck.get_safety(mint)
@@ -76,31 +97,43 @@ def process_mint(mint: str, boosted: bool, cfg: Config, state: State, log: Rejec
         log.reject(mint, sym, "bundles", "; ".join(reasons))
         return
 
-    # Stage 4: unique-buyer demand.
+    # Stage 4: trader diversity — real demand vs bots trading with themselves.
     try:
-        unique_buyers = solana_rpc.unique_buyers_h1(cand.pair_address, cfg)
+        demand = solana_rpc.unique_traders_h1(cand.pair_address, cfg)
     except Exception as exc:
-        print(f"  [WARN] unique-buyer count failed for {sym}: {exc}")
-        unique_buyers = None
-    outcome, reasons = check_demand(unique_buyers, cfg)
+        print(f"  [WARN] trader count failed for {sym}: {exc}")
+        demand = DemandReport()
+    outcome, reasons = check_demand(demand, cfg, age_min)
     if outcome is Outcome.REJECT:
         state.mark_seen(mint)
         log.reject(mint, sym, "demand", "; ".join(reasons))
         return
 
     # Survivor: score it.
-    state.mark_seen(mint)
-    verdict = score(cand, safety, unique_buyers)
+    verdict = score(cand, safety, demand.unique_traders)
     if verdict.score < cfg.min_alert_score:
+        state.mark_seen(mint)
         log.reject(mint, sym, "score", f"momentum score {verdict.score:.0f} < {cfg.min_alert_score:.0f}",
                    str(verdict.components))
         return
 
     print(f"  [SURVIVOR] {sym} scored {verdict.score:.0f} — alerting")
-    if alerter.send(format_alert(cand, safety, bundle, unique_buyers, verdict, time.time() * 1000)):
-        state.mark_alerted(mint)
-        if cand.liquidity_usd:
-            state.watch(mint, {"liquidity_usd": cand.liquidity_usd, "symbol": sym})
+    delivered = alerter.send(
+        format_alert(cand, safety, bundle, demand, verdict, time.time() * 1000)
+    )
+    if not delivered:
+        # Telegram is down or refused the message. Leave the mint unseen so
+        # the next cycle retries: a dropped alert is the one failure this
+        # tool cannot afford to be quiet about.
+        print(f"  [WARN] alert for {sym} not delivered — will retry next cycle")
+        return
+
+    state.mark_seen(mint)
+    state.mark_alerted(mint)
+    if cand.liquidity_usd:
+        state.watch(mint, {"liquidity_usd": cand.liquidity_usd, "symbol": sym})
+    # Persist immediately: a crash after this point must not replay the alert.
+    state.prune_and_save()
 
 
 def check_watched(cfg: Config, state: State, alerter: Alerter) -> None:
@@ -109,10 +142,22 @@ def check_watched(cfg: Config, state: State, alerter: Alerter) -> None:
         if time.time() - info.get("since", 0) > cfg.watch_hours * 3600:
             state.unwatch(mint)
             continue
-        cand = dexscreener.get_candidate(mint)
-        if cand is None or cand.liquidity_usd is None:
+        try:
+            cand = dexscreener.get_candidate(mint)
+        except Exception as exc:
+            print(f"  [WARN] rug-watch lookup failed for {mint[:8]}: {exc}")
             continue
         liq_at_alert = info.get("liquidity_usd") or 0
+        if cand is None or cand.liquidity_usd is None:
+            # The pair vanishing from the market feed is itself a red flag,
+            # so say so rather than treating silence as "still fine".
+            if cand is None:
+                alerter.send(
+                    f"⚠️ <b>{info.get('symbol') or mint[:8]}</b> has dropped off DexScreener "
+                    f"since the alert (pool pulled, or delisted). Treat as gone."
+                )
+                state.unwatch(mint)
+            continue
         threshold = liq_at_alert * (1 - cfg.rug_liquidity_drop_pct / 100.0)
         if liq_at_alert and cand.liquidity_usd < threshold:
             alerter.send(format_rug_warning(cand, liq_at_alert, cand.liquidity_usd))
@@ -121,23 +166,42 @@ def check_watched(cfg: Config, state: State, alerter: Alerter) -> None:
 
 def run_cycle(cfg: Config, state: State, log: RejectionLog, alerter: Alerter) -> int:
     """One poll cycle. Returns number of new mints evaluated."""
-    discovered = dexscreener.discover_mints()
-    for mint in rugcheck.new_token_mints():
-        discovered.setdefault(mint, False)
+    try:
+        discovered = dexscreener.discover_mints()
+        for mint in rugcheck.new_token_mints():
+            discovered.setdefault(mint, False)
 
-    fresh = {m: b for m, b in discovered.items() if not state.is_seen(m) and not state.is_alerted(m)}
-    print(f"[cycle] {len(discovered)} discovered, {len(fresh)} new to evaluate")
+        fresh = [m for m in discovered if not state.is_seen(m) and not state.is_alerted(m)]
+        evaluating = fresh[:MAX_EVALUATIONS_PER_CYCLE]
+        skipped = len(fresh) - len(evaluating)
+        print(f"[cycle] {len(discovered)} discovered, {len(fresh)} new"
+              + (f" ({skipped} deferred to next cycle — per-cycle cap)" if skipped else ""))
 
-    for mint, boosted in fresh.items():
+        # One batched enrichment call per 30 mints, not one call per mint.
+        candidates = dexscreener.get_candidates(evaluating)
+        for mint in evaluating:
+            cand = candidates.get(mint)
+            if cand is None:
+                continue  # not on DexScreener yet; it'll come around again
+            cand.boosted = cand.boosted or discovered.get(mint, False)
+            try:
+                process_mint(cand, cfg, state, log, alerter)
+            except Exception:
+                print(f"  [ERROR] pipeline crashed on {mint[:8]} — skipping this cycle")
+                traceback.print_exc()
+
         try:
-            process_mint(mint, boosted, cfg, state, log, alerter)
+            check_watched(cfg, state, alerter)
         except Exception:
-            print(f"  [ERROR] pipeline crashed on {mint[:8]} — skipping this cycle")
+            print("  [ERROR] rug-watch pass failed")
             traceback.print_exc()
-
-    check_watched(cfg, state, alerter)
-    state.prune_and_save()
-    return len(fresh)
+        return len(evaluating)
+    finally:
+        # Whatever happened above, what we learned this cycle gets written.
+        try:
+            state.prune_and_save()
+        except OSError as exc:
+            print(f"  [WARN] could not save state: {exc}")
 
 
 def main() -> None:
@@ -160,7 +224,7 @@ def main() -> None:
           f"telegram {'ON' if alerter.enabled else 'OFF (console mode)'}")
     print(f"filters: liq>=${cfg.min_liquidity_usd:,.0f} lp_lock>={cfg.min_lp_locked_pct:.0f}% "
           f"top10<={cfg.max_top10_holder_pct:.0f}% bundle<={cfg.max_bundle_pct:.0f}% "
-          f"holders>={cfg.min_holders} buyers>={cfg.min_unique_buyers_h1}")
+          f"holders>={cfg.min_holders} traders>={cfg.min_unique_buyers_h1}")
 
     while True:
         started = time.monotonic()

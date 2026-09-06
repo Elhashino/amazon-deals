@@ -29,7 +29,7 @@ def _saturating(value: float, target: float) -> float:
     return 1.0 - math.exp(-value / target)
 
 
-def score(cand: Candidate, safety: SafetyReport, unique_buyers_h1: int | None) -> Verdict:
+def score(cand: Candidate, safety: SafetyReport, unique_traders_h1: int | None) -> Verdict:
     parts: dict[str, float] = {}
 
     # 1. Buy pressure: fraction of trades that are buys, h1-weighted with m5.
@@ -57,8 +57,8 @@ def score(cand: Candidate, safety: SafetyReport, unique_buyers_h1: int | None) -
 
     # 3. Unique demand: distinct buyers beats volume — bots fake volume,
     #    faking hundreds of distinct funded wallets costs real money.
-    if unique_buyers_h1 is not None:
-        parts["unique_demand"] = W_UNIQUE_DEMAND * _saturating(unique_buyers_h1, 150.0)
+    if unique_traders_h1 is not None:
+        parts["unique_demand"] = W_UNIQUE_DEMAND * _saturating(unique_traders_h1, 150.0)
     else:
         # Unknown (RPC budget ran out) — give half credit from tx counts.
         txs = (cand.buys_h1 or 0) + (cand.sells_h1 or 0)

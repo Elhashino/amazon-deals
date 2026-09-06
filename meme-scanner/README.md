@@ -29,8 +29,11 @@ because RugCheck hasn't indexed it yet.
 3. **Bundles** (Solana RPC): top holders funded from a common parent
    wallet or buying in the same block = one entity pretending to be many.
    More than 20% of supply in bundled wallets → binned.
-4. **Demand**: ≥ 50 unique buying wallets in the last hour — bots fake
-   volume cheaply, hundreds of distinct funded wallets cost real money.
+4. **Demand**: ≥ 50 distinct trading wallets in the last hour (prorated
+   down for a pair younger than an hour), *and* enough wallet diversity in
+   the sampled trades — bots fake volume cheaply, but hundreds of distinct
+   funded wallets cost real money. Two bots printing 1,000 trades between
+   themselves score as two traders, not two hundred.
 
 Survivors get a 0–100 momentum score (buy pressure, volume acceleration,
 unique demand, holder growth, liquidity health, identity). Score ≥ 60 →
@@ -45,7 +48,8 @@ Telegram alert. Alerted coins are re-checked for 12 h; if liquidity drops
 3. In that folder, open a terminal and run:
    ```
    pip install -r requirements.txt
-   python -m pytest tests -q        # optional: all tests should pass
+   pip install -r requirements-dev.txt   # only needed to run the tests
+   python -m pytest tests -q             # optional: all tests should pass
    python scanner.py --once         # one shakedown cycle, console output
    ```
    With no Telegram configured, alerts print to the console — the scanner
@@ -102,3 +106,8 @@ TikTok, you can look up here and check which filter it failed.
   you in the first minutes with evidence, not the first seconds blind.
 - **False negatives survive**: passing every check means "not obviously
   rigged", not "safe". Position sizing is your only real protection.
+- **Unknowns are shown as unknowns**: when the free RPC is saturated the
+  bundle or trader checks can come back undetermined. The alert lists
+  those under "Not verified" rather than leaving a gap that reads as a
+  pass — if you see that line, the coin has had *fewer* checks than the
+  filter implies.

@@ -64,6 +64,21 @@ class BundleReport:
 
 
 @dataclass
+class DemandReport:
+    """Trading-wallet diversity over the last hour, from a sampled estimate.
+
+    unique_traders counts distinct wallets that traded (buyers AND sellers —
+    the fee payer of a swap is the trader either way), so it is honestly
+    named: it is not a buyer-only count.
+    """
+
+    unique_traders: int | None = None   # None = couldn't determine
+    diversity: float | None = None      # distinct wallets / sampled txs, 0..1
+    sampled: int = 0                    # transactions actually fetched
+    total_txns: int = 0                 # pool transactions in the hour
+
+
+@dataclass
 class Verdict:
     score: float
     components: dict[str, float]

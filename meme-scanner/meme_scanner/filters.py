@@ -2,10 +2,15 @@
 
 Three outcomes, and the difference matters:
   REJECT — positive evidence this launch is structured to take your money.
-  DEFER  — data we require is missing (e.g. RugCheck hasn't indexed a
-           30-second-old coin yet). Re-check next poll instead of binning
-           a coin for being young. Missing data is NEVER a pass.
+  DEFER  — the coin is too young, or data we require is missing (e.g.
+           RugCheck hasn't indexed a 30-second-old coin yet). Re-check next
+           poll instead of binning a coin for being new. Missing data is
+           NEVER a pass.
   PASS   — every check had data and every check cleared.
+
+Age is judged before anything else, because liquidity, holders and buyers
+are all things that grow in the first minutes. Binning a 5-minute-old coin
+for having a thin pool bins it forever — so youth defers, it never rejects.
 
 Every failed check is reported, not just the first — the rejection log is
 a teaching tool.
@@ -17,7 +22,7 @@ import time
 from enum import Enum
 
 from .config import Config
-from .models import BundleReport, Candidate, SafetyReport
+from .models import BundleReport, Candidate, DemandReport, SafetyReport
 
 # RugCheck risk names that are instant kills regardless of anything else.
 CRITICAL_RISK_SUBSTRINGS = (
@@ -39,32 +44,36 @@ def _fmt_usd(v: float) -> str:
     return f"${v:,.0f}"
 
 
+def pair_age_minutes(cand: Candidate) -> float | None:
+    if cand.pair_created_at_ms is None:
+        return None
+    return (time.time() * 1000 - cand.pair_created_at_ms) / 60_000
+
+
 def check_market(cand: Candidate, cfg: Config) -> tuple[Outcome, list[str]]:
     """Cheap checks from market data alone — run before spending API budget."""
-    fails: list[str] = []
-    defer = False
+    age_min = pair_age_minutes(cand)
 
+    # --- age gate first ---
+    if age_min is None:
+        return Outcome.DEFER, ["pair age unknown (not indexed yet)"]
+    if age_min < 0:
+        return Outcome.REJECT, ["pair timestamp is in the future"]
+    if age_min > cfg.max_pair_age_minutes:
+        return Outcome.REJECT, [
+            f"too old ({age_min / 60:.1f}h > {cfg.max_pair_age_minutes / 60:.0f}h)"
+        ]
+    if age_min < cfg.min_pair_age_minutes:
+        # Everything below would be judging a pool that is still filling.
+        return Outcome.DEFER, [f"only {age_min:.0f}m old (< {cfg.min_pair_age_minutes:.0f}m)"]
+
+    # --- old enough for its numbers to mean something ---
     if cand.liquidity_usd is None:
-        defer = True
-    elif cand.liquidity_usd < cfg.min_liquidity_usd:
-        fails.append(f"liquidity {_fmt_usd(cand.liquidity_usd)} < {_fmt_usd(cfg.min_liquidity_usd)}")
-
-    if cand.pair_created_at_ms is None:
-        defer = True
-    else:
-        age_min = (time.time() * 1000 - cand.pair_created_at_ms) / 60_000
-        if age_min < 0:
-            fails.append("pair timestamp in the future")
-        elif age_min > cfg.max_pair_age_minutes:
-            fails.append(f"too old ({age_min / 60:.1f}h > {cfg.max_pair_age_minutes / 60:.0f}h)")
-        elif age_min < cfg.min_pair_age_minutes:
-            # Too young is a DEFER, not a reject — it'll grow up in minutes.
-            defer = True
-
-    if fails:
-        return Outcome.REJECT, fails
-    if defer:
-        return Outcome.DEFER, ["market data incomplete or pair too young"]
+        return Outcome.DEFER, ["liquidity unknown"]
+    if cand.liquidity_usd < cfg.min_liquidity_usd:
+        return Outcome.REJECT, [
+            f"liquidity {_fmt_usd(cand.liquidity_usd)} < {_fmt_usd(cfg.min_liquidity_usd)}"
+        ]
     return Outcome.PASS, []
 
 
@@ -116,7 +125,8 @@ def check_safety(safety: SafetyReport, cfg: Config) -> tuple[Outcome, list[str]]
 def check_bundles(bundle: BundleReport, cfg: Config) -> tuple[Outcome, list[str]]:
     if bundle.bundled_pct_of_supply is None:
         # Bundle analysis is best-effort (free RPC gets rate-limited); an
-        # unknown here alone shouldn't freeze the pipeline forever.
+        # unknown here alone shouldn't freeze the pipeline forever. The
+        # alert says so explicitly rather than implying a clean result.
         return Outcome.PASS, []
     if bundle.bundled_pct_of_supply > cfg.max_bundle_pct:
         return Outcome.REJECT, [
@@ -127,9 +137,34 @@ def check_bundles(bundle: BundleReport, cfg: Config) -> tuple[Outcome, list[str]
     return Outcome.PASS, []
 
 
-def check_demand(unique_buyers_h1: int | None, cfg: Config) -> tuple[Outcome, list[str]]:
-    if unique_buyers_h1 is None:
+def check_demand(
+    demand: DemandReport | None, cfg: Config, age_minutes: float | None = None
+) -> tuple[Outcome, list[str]]:
+    """Two ways to fail: too few real traders, or volume that comes from a
+    handful of wallets trading with themselves."""
+    if demand is None or demand.unique_traders is None:
         return Outcome.PASS, []  # best-effort metric; scoring penalizes unknowns
-    if unique_buyers_h1 < cfg.min_unique_buyers_h1:
-        return Outcome.REJECT, [f"only {unique_buyers_h1} unique buyers in 1h (< {cfg.min_unique_buyers_h1})"]
-    return Outcome.PASS, []
+
+    # The threshold is denominated in an hour. A 25-minute-old pair has not
+    # had an hour, so scale the bar to the life it has actually lived.
+    threshold = float(cfg.min_unique_buyers_h1)
+    if age_minutes is not None and age_minutes < 60:
+        threshold *= max(age_minutes, 1.0) / 60.0
+
+    fails: list[str] = []
+    if demand.unique_traders < threshold:
+        age_note = f" for a {age_minutes:.0f}m-old pair" if age_minutes is not None and age_minutes < 60 else ""
+        fails.append(f"~{demand.unique_traders} unique traders (< {threshold:.0f}{age_note})")
+
+    if (
+        demand.diversity is not None
+        and demand.sampled >= 10
+        and demand.total_txns >= 30
+        and demand.diversity < cfg.min_trader_diversity
+    ):
+        fails.append(
+            f"wash-trading pattern: only {demand.diversity:.0%} of sampled trades came from "
+            f"distinct wallets (< {cfg.min_trader_diversity:.0%})"
+        )
+
+    return (Outcome.REJECT, fails) if fails else (Outcome.PASS, [])

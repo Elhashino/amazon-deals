@@ -86,3 +86,61 @@ def test_rejection_log_writes_csv(tmp_path, capsys):
     assert len(lines) == 2
     assert "liquidity too low" in lines[1]
     assert "BINNED" in capsys.readouterr().out
+
+
+# ---------- hardening regressions ----------
+
+from meme_scanner.apis import http as http_mod
+
+
+def test_bot_token_and_api_key_never_reach_logs():
+    """Regression: the Telegram token lives in the URL path, so an ApiError
+    quoting the URL printed the token to the console and any log file."""
+    url = "https://api.telegram.org/bot123456789:AAFakeTokenValue_x/sendMessage"
+    assert "AAFakeTokenValue" not in http_mod.redact(f"POST {url} -> HTTP 400")
+    assert "<TOKEN>" in http_mod.redact(f"POST {url} -> HTTP 400")
+    helius = "https://mainnet.helius-rpc.com/?api-key=deadbeef-secret"
+    assert "deadbeef-secret" not in http_mod.redact(f"POST {helius} failed")
+
+
+def test_retry_after_accepts_both_rfc_forms():
+    """Regression: an HTTP-date Retry-After raised ValueError, which escaped
+    every 'except ApiError' in the codebase and aborted the whole cycle."""
+    assert http_mod._retry_after_seconds("30", 0) == 30.0
+    # HTTP-date form must parse, not raise
+    assert http_mod._retry_after_seconds("Wed, 21 Oct 2099 07:28:00 GMT", 0) > 0
+    # garbage falls back to exponential backoff
+    assert http_mod._retry_after_seconds("not-a-date", 1) == 8.0
+    assert http_mod._retry_after_seconds(None, 0) == 4.0
+
+
+def test_rejection_log_defuses_spreadsheet_formulas(tmp_path):
+    """Token names are attacker-controlled and this CSV gets opened in Excel."""
+    log = RejectionLog(str(tmp_path))
+    log.reject("mint", '=cmd|"/c calc"!A1', "safety", "nasty name")
+    row = (tmp_path / "rejections.csv").read_text().splitlines()[1]
+    assert "'=cmd" in row
+
+
+def test_rejection_log_rotates_instead_of_growing_forever(tmp_path, monkeypatch):
+    monkeypatch.setattr("meme_scanner.rejection_log.MAX_BYTES", 200)
+    log = RejectionLog(str(tmp_path))
+    for i in range(40):
+        log.reject(f"mint{i}", "SYM", "market", "liquidity too low")
+    assert (tmp_path / "rejections.prev.csv").is_file()
+    assert (tmp_path / "rejections.csv").stat().st_size < 2000
+
+
+def test_dotenv_tolerates_windows_notepad_bom(tmp_path):
+    """Regression: Notepad writes a BOM, which glued itself to the first key
+    name and silently disabled that setting."""
+    (tmp_path / ".env").write_text(
+        "TELEGRAM_BOT_TOKEN=abc\nPOLL_SECONDS=90\n", encoding="utf-8-sig"
+    )
+    values = _load_dotenv(tmp_path / ".env")
+    assert values["TELEGRAM_BOT_TOKEN"] == "abc"
+
+
+def test_escape_html_covers_attribute_context():
+    assert escape_html('" onmouseover=x') == "&quot; onmouseover=x"
+    assert escape_html("<b>&'") == "&lt;b&gt;&amp;&#39;"

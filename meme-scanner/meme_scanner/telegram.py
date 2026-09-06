@@ -13,7 +13,15 @@ MAX_LEN = 4096  # Telegram message hard limit
 
 
 def escape_html(text: str) -> str:
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    """Escape quotes as well as tags: interpolated values also land inside
+    href="..." attributes, where a bare quote would break out of them."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
 
 
 class Alerter:

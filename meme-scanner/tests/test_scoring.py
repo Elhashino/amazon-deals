@@ -20,7 +20,7 @@ def strong_candidate() -> Candidate:
 
 
 def test_strong_candidate_scores_high():
-    v = score(strong_candidate(), SafetyReport(total_holders=800), unique_buyers_h1=400)
+    v = score(strong_candidate(), SafetyReport(total_holders=800), unique_traders_h1=400)
     assert v.score >= 70, v.components
     assert abs(sum(v.components.values()) - v.score) < 0.5
 
@@ -32,19 +32,19 @@ def test_weak_candidate_scores_low():
         vol_m5=200, vol_h1=30_000,          # volume dying
         buys_m5=5, sells_m5=25, buys_h1=100, sells_h1=250,  # sell pressure
     )
-    v = score(weak, SafetyReport(total_holders=110), unique_buyers_h1=30)
+    v = score(weak, SafetyReport(total_holders=110), unique_traders_h1=30)
     assert v.score < 35, v.components
 
 
 def test_all_missing_data_is_zero_not_crash():
-    v = score(Candidate(mint="M3"), SafetyReport(), unique_buyers_h1=None)
+    v = score(Candidate(mint="M3"), SafetyReport(), unique_traders_h1=None)
     assert v.score == 0.0
 
 
-def test_unknown_unique_buyers_gets_partial_credit_from_txns():
+def test_unknown_unique_traders_gets_partial_credit_from_txns():
     cand = strong_candidate()
-    with_known = score(cand, SafetyReport(total_holders=800), unique_buyers_h1=400)
-    with_unknown = score(cand, SafetyReport(total_holders=800), unique_buyers_h1=None)
+    with_known = score(cand, SafetyReport(total_holders=800), unique_traders_h1=400)
+    with_unknown = score(cand, SafetyReport(total_holders=800), unique_traders_h1=None)
     assert 0 < with_unknown.components["unique_demand"] < with_known.components["unique_demand"]
 
 

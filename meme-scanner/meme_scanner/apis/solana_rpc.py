@@ -2,7 +2,7 @@
 
 Verified constraints this code respects:
 - Public RPC: ~100 req/10s per IP and 40 req/10s per method — one global
-  throttle at 4 req/s keeps us under both. Helius free (10 RPS) uses the
+  throttle at ~3.3 req/s keeps us under both with margin. Helius free (10 RPS) uses the
   same pacing; it's the reliability that improves, not our appetite.
 - getTokenLargestAccounts returns TOKEN ACCOUNT addresses, not wallets —
   each needs a getAccountInfo to resolve parsed.info.owner.
@@ -16,13 +16,15 @@ Verified constraints this code respects:
 from __future__ import annotations
 
 import time
+from collections import Counter
 
 from ..config import Config
+from ..models import DemandReport
 from .http import ApiError, post_json
 
 SYSTEM_PROGRAM = "11111111111111111111111111111111"
 
-_MIN_INTERVAL = 0.25  # 4 req/s — inside the per-method public-RPC cap
+_MIN_INTERVAL = 0.3  # ~3.3 req/s — margin under the 40-req/10s per-method cap
 _last_call = 0.0
 
 
@@ -193,16 +195,25 @@ def creation_slot(mint: str, cfg: Config, max_pages: int = 3) -> int | None:
     return None  # too deep — signal unavailable rather than wrong
 
 
-def unique_buyers_h1(pair_address: str, cfg: Config, sample_size: int = 40) -> int | None:
-    """Estimate distinct trading wallets in the last hour on a pool.
+def unique_traders_h1(pair_address: str, cfg: Config, sample_size: int = 40) -> DemandReport:
+    """Estimate distinct trading wallets on a pool over the last hour.
 
-    One signatures call gives the hour's transaction count; a spread sample
-    of those transactions gives the distinct-fee-payer ratio; the estimate
-    is ratio x count. Wash-trading bots cycling few wallets produce a low
-    ratio no matter how much volume they print — which is the point.
+    Counting every trader exactly would cost one RPC call per transaction,
+    so we sample. The estimator matters: naively scaling
+    (distinct in sample / sampled) x (total txs) is exactly wrong for the
+    adversary this metric exists to catch — two bots printing 1000 trades
+    would sample as 2 distinct in 40, and scale back up to 50 "traders".
+
+    So repeats within the sample are treated as the signal they are:
+      - saw every sampled wallet exactly once -> the pool is unsaturated,
+        we have not seen its size, extrapolate linearly;
+      - saw repeats -> use the Chao1 richness lower bound, which stays
+        small precisely when a few wallets do all the trading.
+    The diversity ratio is reported alongside so the caller can reject
+    wash-trading patterns outright.
     """
     if not pair_address:
-        return None
+        return DemandReport()
     now = time.time()
     sigs = get_signatures(pair_address, cfg, limit=1000)
     in_hour = [
@@ -213,9 +224,10 @@ def unique_buyers_h1(pair_address: str, cfg: Config, sample_size: int = 40) -> i
     ]
     total = len(in_hour)
     if total == 0:
-        return 0
+        return DemandReport(unique_traders=0, diversity=None, sampled=0, total_txns=0)
+
     take = in_hour if total <= sample_size else in_hour[:: max(1, total // sample_size)][:sample_size]
-    payers = set()
+    payers: list[str] = []
     fetched = 0
     for sig in take:
         try:
@@ -224,8 +236,28 @@ def unique_buyers_h1(pair_address: str, cfg: Config, sample_size: int = 40) -> i
             continue
         fetched += 1
         if payer:
-            payers.add(payer)
+            payers.append(payer)
+
     if fetched < min(10, total):  # too little signal to estimate from
-        return None
-    ratio = len(payers) / fetched
-    return max(len(payers), round(ratio * total))
+        return DemandReport(unique_traders=None, diversity=None, sampled=fetched, total_txns=total)
+
+    counts = Counter(payers)
+    distinct = len(counts)
+    diversity = distinct / fetched if fetched else None
+
+    if fetched >= total:
+        estimate = distinct  # we saw the whole hour; no estimation needed
+    elif distinct == fetched:
+        # No wallet repeated: the sample never saturated, so the population
+        # is larger than what we saw — linear extrapolation is the honest
+        # read, capped by the number of trades that actually happened.
+        estimate = min(total, round(distinct * total / fetched))
+    else:
+        singles = sum(1 for c in counts.values() if c == 1)
+        doubles = sum(1 for c in counts.values() if c == 2)
+        chao1 = distinct + (singles * singles) / (2 * doubles) if doubles else distinct
+        estimate = int(min(total, chao1))
+
+    return DemandReport(
+        unique_traders=estimate, diversity=diversity, sampled=fetched, total_txns=total
+    )

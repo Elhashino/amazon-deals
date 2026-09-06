@@ -64,16 +64,26 @@ def analyze(mint: str, cfg: Config) -> BundleReport:
     # Trace each holder's origin.
     funder_groups: dict[str, list[dict]] = defaultdict(list)
     launch_snipers: list[dict] = []
-    holder_wallets = {h["wallet"] for h in holders}
+    holder_by_wallet = {h["wallet"]: h for h in holders}
     for holder in holders:
         origin = rpc.wallet_origin(holder["wallet"], cfg)
         if origin["too_active"]:
             continue  # an old, busy wallet is not a fresh bundle wallet
         funder = origin["funder"]
         if funder:
-            # A holder funded by another top holder is the same entity.
-            key = funder if funder not in holder_wallets else f"holder:{funder}"
-            funder_groups[key].append(holder)
+            if funder in holder_by_wallet:
+                # A holder funded by another top holder is the same entity —
+                # and the parent belongs in the cluster it funded, otherwise
+                # the biggest bag (the one doing the funding) is the one bag
+                # the bundle percentage misses.
+                key = f"holder:{funder}"
+                parent = holder_by_wallet[funder]
+                if parent not in funder_groups[key]:
+                    funder_groups[key].append(parent)
+            else:
+                key = funder
+            if holder not in funder_groups[key]:
+                funder_groups[key].append(holder)
         if (
             launch_slot is not None
             and origin["first_slot"] is not None

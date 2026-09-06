@@ -19,7 +19,9 @@ def _load_dotenv(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     if not path.is_file():
         return values
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    # utf-8-sig: Windows Notepad writes a BOM, which would otherwise glue
+    # itself to the first key name and silently disable that setting.
+    for raw in path.read_text(encoding="utf-8-sig").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -48,7 +50,8 @@ class Config:
     max_bundle_pct: float = 20.0           # supply bought by bundled wallets, %
     max_rugcheck_score: float = 40.0       # RugCheck normalised risk score, higher = worse
     min_holders: int = 100
-    min_unique_buyers_h1: int = 50
+    min_unique_buyers_h1: int = 50        # distinct trading wallets in 1h
+    min_trader_diversity: float = 0.30    # distinct wallets / sampled trades
 
     # --- Momentum scoring (survivors only) ---
     min_alert_score: float = 60.0          # 0-100; below this we log but stay quiet

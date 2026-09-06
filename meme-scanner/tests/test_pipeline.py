@@ -3,8 +3,9 @@
 Proves: a clean coin flows discovery -> filters -> score -> alert -> watch;
 a dirty coin is binned at the right stage with the reason logged; a
 missing RugCheck report defers instead of binning; an RPC crash never
-kills the cycle; a watched coin whose liquidity vanishes fires exactly
-one rug warning.
+kills the cycle; a failed Telegram send leaves the coin retryable; state
+is durable across a crash; and a watched coin whose liquidity vanishes
+fires exactly one rug warning.
 """
 
 import sys
@@ -15,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import meme_scanner.main as main_mod
 from meme_scanner.config import Config
-from meme_scanner.models import BundleReport, Candidate, SafetyReport
+from meme_scanner.models import BundleReport, Candidate, DemandReport, SafetyReport
 from meme_scanner.rejection_log import RejectionLog
 from meme_scanner.state import State
 
@@ -23,12 +24,13 @@ from meme_scanner.state import State
 class FakeAlerter:
     enabled = True
 
-    def __init__(self):
+    def __init__(self, deliver=True):
         self.sent = []
+        self.deliver = deliver
 
     def send(self, text):
         self.sent.append(text)
-        return True
+        return self.deliver
 
 
 def good_candidate(mint="GOODMINT") -> Candidate:
@@ -51,11 +53,16 @@ def clean_safety() -> SafetyReport:
     )
 
 
-def wire(monkeypatch, tmp_path, *, candidate, safety, bundle=None, buyers=300):
+def healthy_demand() -> DemandReport:
+    return DemandReport(unique_traders=300, diversity=0.85, sampled=40, total_txns=900)
+
+
+def wire(monkeypatch, tmp_path, *, candidate, safety, bundle=None,
+         demand=None, deliver=True):
     cfg = Config(data_dir=str(tmp_path))
     state = State(cfg.data_dir)
     log = RejectionLog(cfg.data_dir)
-    alerter = FakeAlerter()
+    alerter = FakeAlerter(deliver=deliver)
     monkeypatch.setattr(main_mod.dexscreener, "discover_mints",
                         lambda: {candidate.mint: False})
     monkeypatch.setattr(main_mod.dexscreener, "get_candidates",
@@ -66,7 +73,8 @@ def wire(monkeypatch, tmp_path, *, candidate, safety, bundle=None, buyers=300):
     monkeypatch.setattr(main_mod.bundles, "analyze",
                         lambda mint, c: bundle or BundleReport(checked_wallets=15, bundled_wallets=0,
                                                                bundled_pct_of_supply=2.0))
-    monkeypatch.setattr(main_mod.solana_rpc, "unique_buyers_h1", lambda pair, c: buyers)
+    monkeypatch.setattr(main_mod.solana_rpc, "unique_traders_h1",
+                        lambda pair, c: demand or healthy_demand())
     return cfg, state, log, alerter
 
 
@@ -82,9 +90,36 @@ def test_clean_coin_alerts_and_watches(monkeypatch, tmp_path):
     assert "GOOD" in alerter.sent[0] and "Score" in alerter.sent[0]
     assert state.is_alerted("GOODMINT")
     assert "GOODMINT" in state.watched()
-    # second cycle: already seen, no duplicate alert
+    main_mod.run_cycle(cfg, state, log, alerter)  # already seen, no duplicate
+    assert len(alerter.sent) == 1
+
+
+def test_alert_state_is_durable_immediately(monkeypatch, tmp_path):
+    """Regression: state was only written at the end of a cycle, so a crash
+    after alerting replayed that alert on the next start."""
+    cfg, state, log, alerter = wire(monkeypatch, tmp_path,
+                                    candidate=good_candidate(), safety=clean_safety())
+    monkeypatch.setattr(main_mod, "check_watched",
+                        lambda c, s, a: (_ for _ in ()).throw(RuntimeError("crash after alert")))
     main_mod.run_cycle(cfg, state, log, alerter)
     assert len(alerter.sent) == 1
+    reloaded = State(cfg.data_dir)  # what a restart would read from disk
+    assert reloaded.is_alerted("GOODMINT")
+
+
+def test_failed_telegram_send_leaves_coin_retryable(monkeypatch, tmp_path):
+    """Regression: a survivor was marked seen before the send, so a network
+    blip dropped the day's one alert permanently."""
+    cfg, state, log, alerter = wire(monkeypatch, tmp_path, candidate=good_candidate(),
+                                    safety=clean_safety(), deliver=False)
+    main_mod.run_cycle(cfg, state, log, alerter)
+    assert len(alerter.sent) == 1          # attempted
+    assert not state.is_alerted("GOODMINT")
+    assert not state.is_seen("GOODMINT")   # still eligible next cycle
+
+    alerter.deliver = True
+    main_mod.run_cycle(cfg, state, log, alerter)
+    assert len(alerter.sent) == 2 and state.is_alerted("GOODMINT")
 
 
 def test_dirty_coin_binned_at_safety_with_reason(monkeypatch, tmp_path):
@@ -97,7 +132,7 @@ def test_dirty_coin_binned_at_safety_with_reason(monkeypatch, tmp_path):
     assert not alerter.sent
     logged = read_log(tmp_path)
     assert "safety" in logged and "mint authority" in logged
-    assert state.is_seen("GOODMINT")  # binned for good, won't re-fetch
+    assert state.is_seen("GOODMINT")
 
 
 def test_no_rugcheck_report_defers_not_bins(monkeypatch, tmp_path):
@@ -105,7 +140,7 @@ def test_no_rugcheck_report_defers_not_bins(monkeypatch, tmp_path):
                                     candidate=good_candidate(), safety=None)
     main_mod.run_cycle(cfg, state, log, alerter)
     assert not alerter.sent
-    assert not state.is_seen("GOODMINT")  # eligible again next cycle
+    assert not state.is_seen("GOODMINT")
     assert "GOODMINT" not in read_log(tmp_path)
 
 
@@ -120,6 +155,15 @@ def test_bundled_coin_binned(monkeypatch, tmp_path):
     assert "bundles" in read_log(tmp_path)
 
 
+def test_wash_traded_coin_binned(monkeypatch, tmp_path):
+    washed = DemandReport(unique_traders=3, diversity=0.05, sampled=40, total_txns=900)
+    cfg, state, log, alerter = wire(monkeypatch, tmp_path, candidate=good_candidate(),
+                                    safety=clean_safety(), demand=washed)
+    main_mod.run_cycle(cfg, state, log, alerter)
+    assert not alerter.sent
+    assert "demand" in read_log(tmp_path)
+
+
 def test_rpc_crash_does_not_kill_candidate(monkeypatch, tmp_path):
     cfg, state, log, alerter = wire(monkeypatch, tmp_path,
                                     candidate=good_candidate(), safety=clean_safety())
@@ -128,11 +172,12 @@ def test_rpc_crash_does_not_kill_candidate(monkeypatch, tmp_path):
         raise RuntimeError("RPC 429")
 
     monkeypatch.setattr(main_mod.bundles, "analyze", boom)
-    monkeypatch.setattr(main_mod.solana_rpc, "unique_buyers_h1",
+    monkeypatch.setattr(main_mod.solana_rpc, "unique_traders_h1",
                         lambda pair, c: (_ for _ in ()).throw(RuntimeError("RPC down")))
     main_mod.run_cycle(cfg, state, log, alerter)
-    # bundle + buyers unknown -> best-effort pass, scored with partial credit
     assert len(alerter.sent) == 1
+    # and the alert says which checks could not be completed
+    assert "Not verified" in alerter.sent[0]
 
 
 def test_rug_watch_fires_once(monkeypatch, tmp_path):
@@ -141,7 +186,6 @@ def test_rug_watch_fires_once(monkeypatch, tmp_path):
     main_mod.run_cycle(cfg, state, log, alerter)
     assert len(alerter.sent) == 1
 
-    # liquidity collapses 90%
     rugged = good_candidate()
     rugged.liquidity_usd = 7_000
     monkeypatch.setattr(main_mod.dexscreener, "get_candidate", lambda mint: rugged)
@@ -149,3 +193,48 @@ def test_rug_watch_fires_once(monkeypatch, tmp_path):
     assert len(alerter.sent) == 2 and "RUG WARNING" in alerter.sent[1]
     main_mod.check_watched(cfg, state, alerter)  # no repeat spam
     assert len(alerter.sent) == 2
+
+
+def test_rug_watch_warns_when_pair_disappears(monkeypatch, tmp_path):
+    cfg, state, log, alerter = wire(monkeypatch, tmp_path,
+                                    candidate=good_candidate(), safety=clean_safety())
+    main_mod.run_cycle(cfg, state, log, alerter)
+    monkeypatch.setattr(main_mod.dexscreener, "get_candidate", lambda mint: None)
+    main_mod.check_watched(cfg, state, alerter)
+    assert "dropped off DexScreener" in alerter.sent[-1]
+    assert "GOODMINT" not in state.watched()
+
+
+def test_cycle_uses_batched_enrichment(monkeypatch, tmp_path):
+    """Regression: one DexScreener call per mint burned the rate limit that
+    the 30-mint batch endpoint exists to protect."""
+    cands = {f"M{i}": good_candidate(f"M{i}") for i in range(25)}
+    calls = []
+    cfg = Config(data_dir=str(tmp_path))
+    state, log, alerter = State(cfg.data_dir), RejectionLog(cfg.data_dir), FakeAlerter()
+    monkeypatch.setattr(main_mod.dexscreener, "discover_mints",
+                        lambda: {m: False for m in cands})
+    monkeypatch.setattr(main_mod.rugcheck, "new_token_mints", lambda: [])
+
+    def fake_batch(mints):
+        calls.append(list(mints))
+        return {m: cands[m] for m in mints if m in cands}
+
+    monkeypatch.setattr(main_mod.dexscreener, "get_candidates", fake_batch)
+    monkeypatch.setattr(main_mod.rugcheck, "get_safety", lambda mint: None)  # defer early
+    main_mod.run_cycle(cfg, state, log, alerter)
+    assert len(calls) == 1 and len(calls[0]) == 25
+
+
+def test_per_cycle_cap_is_reported_not_silent(monkeypatch, tmp_path, capsys):
+    many = {f"M{i}": good_candidate(f"M{i}") for i in range(80)}
+    cfg = Config(data_dir=str(tmp_path))
+    state, log, alerter = State(cfg.data_dir), RejectionLog(cfg.data_dir), FakeAlerter()
+    monkeypatch.setattr(main_mod.dexscreener, "discover_mints", lambda: {m: False for m in many})
+    monkeypatch.setattr(main_mod.rugcheck, "new_token_mints", lambda: [])
+    monkeypatch.setattr(main_mod.dexscreener, "get_candidates",
+                        lambda mints: {m: many[m] for m in mints})
+    monkeypatch.setattr(main_mod.rugcheck, "get_safety", lambda mint: None)
+    evaluated = main_mod.run_cycle(cfg, state, log, alerter)
+    assert evaluated == main_mod.MAX_EVALUATIONS_PER_CYCLE
+    assert "deferred to next cycle" in capsys.readouterr().out
