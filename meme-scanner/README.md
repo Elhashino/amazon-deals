@@ -40,6 +40,17 @@ unique demand, holder growth, liquidity health, identity). Score ≥ 60 →
 Telegram alert. Alerted coins are re-checked for 12 h; if liquidity drops
 60%+ you get one **RUG WARNING** message.
 
+## See it work first (30 seconds, no setup)
+
+```
+python demo.py
+```
+
+Runs six invented launches — a rug, a bundled dev bag, a wash-traded
+pump, a too-young coin, a boring one, and a good one — through the real
+filters, and prints exactly what each gets and why. No internet, no keys,
+no accounts. Do this before anything else.
+
 ## Setup (Windows, ~10 minutes)
 
 1. Install [Python 3.11+](https://www.python.org/downloads/) — tick
