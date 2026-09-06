@@ -187,15 +187,37 @@ def run_cycle(cfg: Config, state: State, log: RejectionLog, alerter: Alerter,
         for mint in rugcheck.new_token_mints():
             discovered.setdefault(mint, False)
 
-        fresh = [m for m in discovered if not state.is_seen(m) and not state.is_alerted(m)]
+        polled = [m for m in discovered if not state.is_seen(m) and not state.is_alerted(m)]
         # Ripened live launches go first: they are the freshest real leads.
+        # Keep them in the order ripe_pending sorted them — oldest first.
+        # Inserting each at the head instead would reverse that into newest
+        # first, and once the queue is deeper than one cycle's cap, a coin
+        # would then be looked at only in the minutes right after it ripens,
+        # which is exactly when DexScreener has a pair for it but no
+        # liquidity figure yet. It defers, newer arrivals push it down, and
+        # nothing ever re-checks it once its data fills in. Draining oldest
+        # first means every pending coin comes back around.
         ripe = state.ripe_pending(cfg.min_pair_age_minutes * 60)
+        already = set(polled)
+        ripe_first = []
         for mint in ripe:
-            if mint not in fresh:
-                fresh.insert(0, mint)
+            if mint not in already:
+                ripe_first.append(mint)
                 discovered.setdefault(mint, False)
+        fresh = ripe_first + polled
 
-        evaluating = fresh[:MAX_EVALUATIONS_PER_CYCLE]
+        # Split the budget between the two discovery paths instead of letting
+        # either take all of it. Most pump.fun launches never leave the bonding
+        # curve: DexScreener lists them with no liquidity figure at all, so they
+        # defer every cycle and pile up until they expire. That queue reaches
+        # many times the cycle cap within an hour, and taking from it first
+        # leaves nothing for the DexScreener and RugCheck polling feeds — the
+        # path that catches launches from everywhere else. Each side gets a
+        # reserved share, and whatever one side doesn't use goes to the other.
+        reserve = MAX_EVALUATIONS_PER_CYCLE // 2
+        take_polled = polled[:MAX_EVALUATIONS_PER_CYCLE - min(reserve, len(ripe_first))]
+        take_ripe = ripe_first[:MAX_EVALUATIONS_PER_CYCLE - len(take_polled)]
+        evaluating = take_ripe + take_polled
         skipped = len(fresh) - len(evaluating)
         live_note = ""
         if feed is not None:
