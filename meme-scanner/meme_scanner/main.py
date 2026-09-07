@@ -33,6 +33,7 @@ from .filters import (
     pair_age_minutes,
 )
 from .models import BundleReport, Candidate, DemandReport
+from .outcomes import OutcomeLog
 from .rejection_log import RejectionLog
 from .scoring import score
 from .state import State
@@ -57,7 +58,8 @@ FEED_WARMUP_SECONDS = 20.0
 
 
 def process_mint(
-    cand: Candidate, cfg: Config, state: State, log: RejectionLog, alerter: Alerter
+    cand: Candidate, cfg: Config, state: State, log: RejectionLog, alerter: Alerter,
+    outcomes: OutcomeLog | None = None
 ) -> None:
     """Run one candidate through the full pipeline.
 
@@ -143,13 +145,19 @@ def process_mint(
 
     state.mark_seen(mint)
     state.mark_alerted(mint)
+    if outcomes is not None:
+        outcomes.alert(cand, safety, bundle, demand, verdict, age_min)
     if cand.liquidity_usd:
-        state.watch(mint, {"liquidity_usd": cand.liquidity_usd, "symbol": sym})
+        # Keep the alert-time price too: liquidity alone cannot tell a pool
+        # being drained from a token whose price simply fell.
+        state.watch(mint, {"liquidity_usd": cand.liquidity_usd, "symbol": sym,
+                           "price_usd": cand.price_usd})
     # Persist immediately: a crash after this point must not replay the alert.
     state.prune_and_save()
 
 
-def check_watched(cfg: Config, state: State, alerter: Alerter) -> None:
+def check_watched(cfg: Config, state: State, alerter: Alerter,
+                  outcomes: OutcomeLog | None = None) -> None:
     """Re-check alerted coins; warn once if liquidity is being pulled."""
     for mint, info in state.watched().items():
         if time.time() - info.get("since", 0) > cfg.watch_hours * 3600:
@@ -160,6 +168,10 @@ def check_watched(cfg: Config, state: State, alerter: Alerter) -> None:
         except Exception as exc:
             print(f"  [WARN] rug-watch lookup failed for {mint[:8]}: {exc}")
             continue
+        if outcomes is not None:
+            outcomes.snapshot(mint, info.get("symbol") or "",
+                              (time.time() - info.get("since", time.time())) / 60.0,
+                              cand, info.get("liquidity_usd"), info.get("price_usd"))
         liq_at_alert = info.get("liquidity_usd") or 0
         if cand is None or cand.liquidity_usd is None:
             # The pair vanishing from the market feed is itself a red flag,
@@ -178,7 +190,8 @@ def check_watched(cfg: Config, state: State, alerter: Alerter) -> None:
 
 
 def run_cycle(cfg: Config, state: State, log: RejectionLog, alerter: Alerter,
-              feed: pumpportal.LaunchFeed | None = None) -> int:
+              feed: pumpportal.LaunchFeed | None = None,
+              outcomes: OutcomeLog | None = None) -> int:
     """One poll cycle. Returns number of new mints evaluated."""
     try:
         # Live launches arrive seconds after creation — far too young to
@@ -242,13 +255,13 @@ def run_cycle(cfg: Config, state: State, log: RejectionLog, alerter: Alerter,
                 continue  # not on DexScreener yet; it'll come around again
             cand.boosted = cand.boosted or discovered.get(mint, False)
             try:
-                process_mint(cand, cfg, state, log, alerter)
+                process_mint(cand, cfg, state, log, alerter, outcomes)
             except Exception:
                 print(f"  [ERROR] pipeline crashed on {mint[:8]} — skipping this cycle")
                 traceback.print_exc()
 
         try:
-            check_watched(cfg, state, alerter)
+            check_watched(cfg, state, alerter, outcomes)
         except Exception:
             print("  [ERROR] rug-watch pass failed")
             traceback.print_exc()
@@ -275,6 +288,7 @@ def main() -> None:
     cfg = Config.load()
     state = State(cfg.data_dir)
     log = RejectionLog(cfg.data_dir)
+    outcomes = OutcomeLog(cfg.data_dir)
     alerter = Alerter(cfg.telegram_bot_token, cfg.telegram_chat_id)
 
     feed = None
@@ -308,7 +322,7 @@ def main() -> None:
         while True:
             started = time.monotonic()
             try:
-                run_cycle(cfg, state, log, alerter, feed)
+                run_cycle(cfg, state, log, alerter, feed, outcomes)
             except Exception:
                 print("[ERROR] cycle failed, will retry next poll")
                 traceback.print_exc()
