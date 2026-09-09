@@ -24,6 +24,7 @@ from .alerts import format_alert, format_rug_warning
 from .analysis import bundles
 from .apis import dexscreener, pumpportal, rugcheck, solana_rpc
 from .config import Config
+from .discord import DiscordAlerter
 from .filters import (
     Outcome,
     check_bundles,
@@ -289,7 +290,8 @@ def main() -> None:
     state = State(cfg.data_dir)
     log = RejectionLog(cfg.data_dir)
     outcomes = OutcomeLog(cfg.data_dir)
-    alerter = Alerter(cfg.telegram_bot_token, cfg.telegram_chat_id)
+    alerter = Alerter(cfg.telegram_bot_token, cfg.telegram_chat_id,
+                      extra_sinks=[DiscordAlerter(cfg.discord_webhook_url)])
 
     feed = None
     if cfg.enable_pumpportal:
@@ -298,7 +300,8 @@ def main() -> None:
             feed = None  # library missing — polling feeds still work
 
     print(f"meme-scanner v{__version__} | poll every {cfg.poll_seconds}s | "
-          f"telegram {'ON' if alerter.enabled else 'OFF (console mode)'} | "
+          f"telegram {'ON' if alerter.telegram_enabled else 'OFF'} | "
+          f"discord {'ON' if alerter.extra_sinks else 'OFF'} | "
           f"live feed {'ON' if feed else 'OFF'}")
     print(f"filters: liq>=${cfg.min_liquidity_usd:,.0f} lp_lock>={cfg.min_lp_locked_pct:.0f}% "
           f"top10<={cfg.max_top10_holder_pct:.0f}% bundle<={cfg.max_bundle_pct:.0f}% "

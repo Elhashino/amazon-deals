@@ -35,6 +35,7 @@ class Config:
     # --- Telegram alerts (empty token = console-only mode) ---
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    discord_webhook_url: str = ""   # optional second channel; same alert, Markdown
 
     # --- Polling ---
     poll_seconds: int = 60
