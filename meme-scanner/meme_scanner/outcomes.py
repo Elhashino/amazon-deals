@@ -80,6 +80,51 @@ class _Csv:
         if not self.path.is_file():
             with self.path.open("w", newline="", encoding="utf-8") as fh:
                 csv.writer(fh).writerow(self.fields)
+            return
+        self._migrate_header()
+
+    def _migrate_header(self) -> None:
+        """Bring an existing file up to the current columns.
+
+        Adding a field to FIELDS would otherwise append rows carrying more
+        values than the header on disk names, silently misaligning every
+        column after the insertion point for anything reading the file back.
+        Rows already written are rewritten against the new header with the
+        columns they predate left empty, which keeps history readable instead
+        of trading it for the new fields.
+        """
+        try:
+            with self.path.open(encoding="utf-8", newline="") as fh:
+                rows = list(csv.reader(fh))
+        except OSError as exc:
+            print(f"  [WARN] could not read {self.path.name} to migrate: {exc}")
+            return
+        if not rows or rows[0] == self.fields:
+            return
+
+        old = rows[0]
+        merged = [dict(zip(old, r)) for r in rows[1:] if r]
+        tmp = self.path.with_suffix(".migrating.csv")
+        try:
+            # Write beside the original and swap, so an interruption cannot
+            # leave the log half-rewritten.
+            with tmp.open("w", newline="", encoding="utf-8") as fh:
+                w = csv.writer(fh)
+                w.writerow(self.fields)
+                for record in merged:
+                    w.writerow([record.get(f, "") for f in self.fields])
+            tmp.replace(self.path)
+            added = [f for f in self.fields if f not in old]
+            dropped = [f for f in old if f not in self.fields]
+            note = (f"+{len(added)}" if added else "") + (f" -{len(dropped)}" if dropped else "")
+            print(f"  [log] {self.path.name}: columns updated ({note.strip()}), "
+                  f"{len(merged)} existing rows kept")
+        except OSError as exc:
+            print(f"  [WARN] could not migrate {self.path.name}: {exc}")
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
 
     def append(self, row: dict) -> None:
         try:
