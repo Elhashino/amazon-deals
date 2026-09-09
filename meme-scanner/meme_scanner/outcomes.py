@@ -38,7 +38,9 @@ ALERT_FIELDS = [
     "buys_m5", "sells_m5", "buys_h1", "sells_h1",
     "price_change_m5", "price_change_h1",
     # identity / promotion
-    "has_website", "has_socials", "boosted",
+    "has_website", "has_socials", "social_types", "has_telegram", "boosted",
+    # derived, for the risk features the literature points at
+    "avg_buy_usd_h1",
     # safety
     "lp_locked_pct", "mint_authority_active", "freeze_authority_active",
     "top10_holder_pct", "max_single_holder_pct", "insider_pct",
@@ -122,7 +124,11 @@ class OutcomeLog:
             "price_change_m5": cand.price_change_m5,
             "price_change_h1": cand.price_change_h1,
             "has_website": cand.has_website, "has_socials": cand.has_socials,
+            "social_types": "|".join(cand.social_types),
+            "has_telegram": cand.has_telegram,
             "boosted": cand.boosted,
+            "avg_buy_usd_h1": (f"{cand.avg_buy_usd_h1:.2f}"
+                               if cand.avg_buy_usd_h1 is not None else None),
             "lp_locked_pct": getattr(safety, "lp_locked_pct", None),
             "mint_authority_active": getattr(safety, "mint_authority_active", None),
             "freeze_authority_active": getattr(safety, "freeze_authority_active", None),

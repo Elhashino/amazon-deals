@@ -92,6 +92,14 @@ def pair_to_candidate(pair: dict) -> Candidate | None:
         price_change_h1=_to_float(change.get("h1")),
         has_website=bool(info.get("websites")),
         has_socials=bool(info.get("socials")),
+        # Which channels, not merely whether there are any: the published
+        # graduation work separates Telegram from the rest by a wide margin,
+        # and that distinction is lost in a single boolean.
+        social_types=tuple(
+            str(s.get("type", "")).lower()
+            for s in (info.get("socials") or [])
+            if isinstance(s, dict) and s.get("type")
+        ),
         boosted=bool(boosts.get("active")),
     )
 

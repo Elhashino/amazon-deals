@@ -33,7 +33,27 @@ class Candidate:
     price_change_h1: float | None = None
     has_website: bool = False
     has_socials: bool = False
+    social_types: tuple[str, ...] = ()  # ("twitter", "telegram", ...) — which, not just whether
     boosted: bool = False          # paid DexScreener boost — a flag, not a virtue
+
+    @property
+    def has_telegram(self) -> bool:
+        return "telegram" in self.social_types
+
+    @property
+    def avg_buy_usd_h1(self) -> float | None:
+        """Hourly volume per buy.
+
+        Recorded because published work on high-risk launches finds their
+        market activity skews towards fewer buyers taking larger positions,
+        which this separates from the same volume spread across many small
+        ones. Volume counts both sides of the book while the divisor counts
+        only buys, so treat it as a comparable scale figure rather than a
+        true mean trade size.
+        """
+        if not self.vol_h1 or not self.buys_h1:
+            return None
+        return self.vol_h1 / self.buys_h1
 
 
 @dataclass
