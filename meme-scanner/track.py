@@ -93,7 +93,10 @@ def pass_once(alerts: list[dict], outcomes: OutcomeLog) -> None:
         except Exception as exc:
             print(f"  [WARN] lookup failed for a batch of {len(chunk)}: {exc}")
 
-    print(f"\n[{now.strftime('%H:%M:%S')}] following {len(alerts)} coins")
+    # Show the clock the reader is actually looking at. The CSV stays UTC:
+    # timestamps that survive a timezone change belong in the data, while the
+    # console is for a person comparing it against their own wall clock.
+    print(f"\n[{now.astimezone().strftime('%H:%M:%S')}] following {len(alerts)} coins")
     print(f"  {'coin':16}{'age':>7}{'liq now':>12}{'liq %':>8}{'price %':>9}")
     for a in alerts:
         cand = found.get(a["mint"])
@@ -120,8 +123,10 @@ def main() -> None:
 
     cfg = Config.load()
     outcomes = OutcomeLog(cfg.data_dir)
+    every = f"{args.every / 60:.0f} min" if args.every >= 60 else f"{args.every:.0f}s"
     print(f"outcome tracker | following alerts from the last {args.hours:.0f}h "
-          f"| every {args.every:.0f}s | free (DexScreener only, no RPC, no Helius credits)")
+          f"| checking every {every} | times shown local, logged in UTC")
+    print("free to run: DexScreener only, no Solana RPC, no Helius credits")
 
     try:
         while True:
