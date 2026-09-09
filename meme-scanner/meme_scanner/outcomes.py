@@ -103,7 +103,17 @@ class _Csv:
             return
 
         old = rows[0]
-        merged = [dict(zip(old, r)) for r in rows[1:] if r]
+        # A row is read against whichever schema its own width matches. A file
+        # written after fields were added but before the header caught up holds
+        # rows in the new shape under the old header, and reading those against
+        # the old names would shift every value past the first added field into
+        # the wrong column — turning recoverable rows into plausible nonsense.
+        merged = []
+        for r in rows[1:]:
+            if not r:
+                continue
+            names = self.fields if len(r) == len(self.fields) else old
+            merged.append(dict(zip(names, r)))
         tmp = self.path.with_suffix(".migrating.csv")
         try:
             # Write beside the original and swap, so an interruption cannot
