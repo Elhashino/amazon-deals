@@ -1,0 +1,22 @@
+name: gold-alert-backup
+on:
+  schedule:
+    # ~35 min after the primary (Elhashino/gold-alert); the script's NY-hour
+    # gate and ntfy dedupe ensure it only speaks when the primary stayed silent.
+    - cron: '40 14 * * 1-5'
+    - cron: '40 15 * * 1-5'
+  workflow_dispatch: {}
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install dukascopy-python pandas numpy requests
+      - run: python scripts/gold_alert_backup.py
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
