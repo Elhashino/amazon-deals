@@ -1,0 +1,38 @@
+name: morning-brief-backup
+on:
+  schedule:
+    # ~30 min after the primary (Elhashino/market-brief, 07:15 UTC). This repo's
+    # scheduler has months of daily reliability; the dedupe step keeps it silent
+    # whenever the primary already delivered.
+    - cron: '45 7 * * 1-5'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: did the primary deliver?
+        id: dedupe
+        run: |
+          if curl -s "https://ntfy.sh/sunblessed-gold-mm-7x3q/json?poll=1&since=5h" | grep -q "Morning market brief"; then
+            echo "sent=yes" >> "$GITHUB_OUTPUT"
+            echo "primary delivered - standing down"
+          else
+            echo "sent=no" >> "$GITHUB_OUTPUT"
+            echo "no brief on the channel - backup takes over"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.dedupe.outputs.sent == 'no'
+        with:
+          repository: Elhashino/market-brief
+      - uses: actions/setup-python@v5
+        if: steps.dedupe.outputs.sent == 'no'
+        with:
+          python-version: '3.12'
+      - if: steps.dedupe.outputs.sent == 'no'
+        run: pip install yfinance pandas numpy requests
+      - if: steps.dedupe.outputs.sent == 'no'
+        run: python cloud_brief.py
+        env:
+          BACKUP: '1'
