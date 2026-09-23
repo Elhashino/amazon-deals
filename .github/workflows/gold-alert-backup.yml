@@ -1,10 +1,12 @@
 name: gold-alert-backup
 on:
   schedule:
-    # ~35 min after the primary (Elhashino/gold-alert); the script's NY-hour
-    # gate and ntfy dedupe ensure it only speaks when the primary stayed silent.
-    - cron: '40 14 * * 1-5'
-    - cron: '40 15 * * 1-5'
+    # CO-PRIMARY on this repo's proven scheduler (the newborn gold-alert repo
+    # slept two days running). Same slots as the primary; the script's NY-hour
+    # gate picks the right one and the gold-title dedupe prevents doubles if
+    # the other repo ever wakes.
+    - cron: '5 14 * * 1-5'
+    - cron: '5 15 * * 1-5'
   workflow_dispatch: {}
 
 jobs:

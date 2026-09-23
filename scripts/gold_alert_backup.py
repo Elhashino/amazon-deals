@@ -23,13 +23,26 @@ import dukascopy_python.instruments as ins
 
 TOPIC = "sunblessed-gold-mm-7x3q"
 NY = ZoneInfo("America/New_York")
-RETRIES, WAIT_S = 5, 240
+RETRIES, WAIT_S = 8, 300
 
 
 def already_delivered() -> bool:
+    """True only if a GOLD-titled message hit the channel recently — the
+    morning brief shares this topic and must not satisfy the check."""
+    import json
     try:
         r = requests.get(f"https://ntfy.sh/{TOPIC}/json?poll=1&since=6h", timeout=20)
-        return any(line.strip() and '"message"' in line for line in r.text.splitlines())
+        for line in r.text.splitlines():
+            if not line.strip():
+                continue
+            try:
+                m = json.loads(line)
+            except Exception:
+                continue
+            if m.get("event") == "message" and \
+                    m.get("title", "").lower().startswith("gold"):
+                return True
+        return False
     except Exception as e:
         print("dedupe poll failed, will send anyway:", e)
         return False                      # duplicate beats silence
