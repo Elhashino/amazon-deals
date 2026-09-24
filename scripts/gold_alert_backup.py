@@ -102,14 +102,17 @@ def verdict():
 def main():
     forced = os.environ.get("FORCE") == "1"
     now_ny = datetime.now(NY)
-    if not forced and now_ny.hour not in (10, 11):
-        print(f"time gate: {now_ny:%H:%M} NY outside backup window")
-        sys.exit(0)
     if not forced and now_ny.weekday() >= 5:
         print("weekend - nothing to do")
         sys.exit(0)
     if not forced and already_delivered():
-        print("primary already delivered today - backup stands down")
+        print("verdict already on the channel today - standing down")
+        sys.exit(0)
+    # GitHub's scheduler runs hours late: deliver whenever we run once the
+    # 10:00 NY candle exists; too early -> a later slot handles it.
+    target = now_ny.replace(hour=10, minute=6, second=0, microsecond=0)
+    if not forced and now_ny < target - timedelta(minutes=45):
+        print(f"{now_ny:%H:%M} NY is too early - a later slot delivers")
         sys.exit(0)
 
     for attempt in range(RETRIES):

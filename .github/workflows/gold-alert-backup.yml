@@ -1,18 +1,25 @@
 name: gold-alert-backup
 on:
   schedule:
-    # CO-PRIMARY on this repo's proven scheduler (the newborn gold-alert repo
-    # slept two days running). Same slots as the primary; the script's NY-hour
-    # gate picks the right one and the gold-title dedupe prevents doubles if
-    # the other repo ever wakes.
-    - cron: '5 14 * * 1-5'
-    - cron: '5 15 * * 1-5'
+    # CO-PRIMARY gold verdict. GitHub's scheduler runs hours late on quiet
+    # repos, so many staggered slots (offset from the gold-alert repo's):
+    # whichever fires first after the 10:00 NY candle delivers; the gold-title
+    # dedupe silences every later run.
+    - cron: '32 8 * * 1-5'
+    - cron: '2 10 * * 1-5'
+    - cron: '32 11 * * 1-5'
+    - cron: '2 13 * * 1-5'
+    - cron: '22 14 * * 1-5'
+    - cron: '52 14 * * 1-5'
+    - cron: '22 15 * * 1-5'
+    - cron: '52 15 * * 1-5'
+    - cron: '32 16 * * 1-5'
   workflow_dispatch: {}
 
 jobs:
   alert:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

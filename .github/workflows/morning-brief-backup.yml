@@ -1,10 +1,14 @@
 name: morning-brief-backup
 on:
   schedule:
-    # ~30 min after the primary (Elhashino/market-brief, 07:15 UTC). This repo's
-    # scheduler has months of daily reliability; the dedupe step keeps it silent
-    # whenever the primary already delivered.
-    - cron: '45 7 * * 1-5'
+    # GitHub's scheduler runs hours late on quiet repos: staggered slots from
+    # early morning; the dedupe step keeps every run silent once a brief is on
+    # the channel.
+    - cron: '47 4 * * 1-5'
+    - cron: '47 5 * * 1-5'
+    - cron: '47 6 * * 1-5'
+    - cron: '47 7 * * 1-5'
+    - cron: '47 8 * * 1-5'
   workflow_dispatch: {}
 
 jobs:
