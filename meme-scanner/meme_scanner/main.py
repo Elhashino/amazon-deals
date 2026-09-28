@@ -24,7 +24,7 @@ from .alerts import format_alert, format_rug_warning
 from .analysis import bundles
 from .apis import dexscreener, pumpportal, rugcheck, solana_rpc
 from .config import Config
-from .discord import DiscordAlerter
+from .discord import alerters_from
 from .filters import (
     Outcome,
     check_bundles,
@@ -290,8 +290,9 @@ def main() -> None:
     state = State(cfg.data_dir)
     log = RejectionLog(cfg.data_dir)
     outcomes = OutcomeLog(cfg.data_dir)
+    discord_sinks = alerters_from(cfg.discord_webhook_url)
     alerter = Alerter(cfg.telegram_bot_token, cfg.telegram_chat_id,
-                      extra_sinks=[DiscordAlerter(cfg.discord_webhook_url)])
+                      extra_sinks=discord_sinks)
 
     feed = None
     if cfg.enable_pumpportal:
@@ -301,7 +302,7 @@ def main() -> None:
 
     print(f"meme-scanner v{__version__} | poll every {cfg.poll_seconds}s | "
           f"telegram {'ON' if alerter.telegram_enabled else 'OFF'} | "
-          f"discord {'ON' if alerter.extra_sinks else 'OFF'} | "
+          f"discord {f'ON x{len(discord_sinks)}' if discord_sinks else 'OFF'} | "
           f"live feed {'ON' if feed else 'OFF'}")
     print(f"filters: liq>=${cfg.min_liquidity_usd:,.0f} lp_lock>={cfg.min_lp_locked_pct:.0f}% "
           f"top10<={cfg.max_top10_holder_pct:.0f}% bundle<={cfg.max_bundle_pct:.0f}% "

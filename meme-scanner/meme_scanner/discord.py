@@ -45,6 +45,25 @@ def _redact(text: str) -> str:
     return re.sub(r"(https://discord(?:app)?\.com/api/webhooks/)\S+", r"\1<REDACTED>", text)
 
 
+def alerters_from(value: str) -> list["DiscordAlerter"]:
+    """Build one alerter per webhook URL in a config value.
+
+    Several channels is the normal case once a second one is wanted, so the
+    setting holds a list separated by commas, spaces or newlines — none of
+    which occur inside a webhook URL. Anything that is not a URL is dropped
+    rather than becoming a sink that fails on every alert, and duplicates are
+    collapsed so the same channel cannot be pinged twice for one coin.
+    """
+    seen: set[str] = set()
+    out: list[DiscordAlerter] = []
+    for part in (value or "").replace(",", " ").split():
+        alerter = DiscordAlerter(part)
+        if alerter.enabled and alerter.webhook_url not in seen:
+            seen.add(alerter.webhook_url)
+            out.append(alerter)
+    return out
+
+
 class DiscordAlerter:
     def __init__(self, webhook_url: str) -> None:
         self.webhook_url = (webhook_url or "").strip()
