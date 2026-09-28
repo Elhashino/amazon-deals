@@ -1,14 +1,15 @@
 name: morning-brief-backup
 on:
   schedule:
-    # GitHub's scheduler runs hours late on quiet repos: staggered slots from
-    # early morning; the dedupe step keeps every run silent once a brief is on
-    # the channel.
-    - cron: '47 4 * * 1-5'
-    - cron: '47 5 * * 1-5'
-    - cron: '47 6 * * 1-5'
-    - cron: '47 7 * * 1-5'
-    - cron: '47 8 * * 1-5'
+    # Scheduler lag measured 6-8h: night slots so the lag lands in the UK
+    # morning, offset from the primary's. The script's 06:00-UK gate and the
+    # channel dedupe keep every run harmless.
+    - cron: '7 0 * * 1-5'
+    - cron: '7 1 * * 1-5'
+    - cron: '7 2 * * 1-5'
+    - cron: '7 4 * * 1-5'
+    - cron: '7 6 * * 1-5'
+    - cron: '7 8 * * 1-5'
   workflow_dispatch: {}
 
 jobs:
