@@ -305,7 +305,7 @@ def main() -> None:
           f"discord {f'ON x{len(discord_sinks)}' if discord_sinks else 'OFF'} | "
           f"live feed {'ON' if feed else 'OFF'}")
     print(f"filters: liq>=${cfg.min_liquidity_usd:,.0f} lp_lock>={cfg.min_lp_locked_pct:.0f}% "
-          f"top10<={cfg.max_top10_holder_pct:.0f}% bundle<={cfg.max_bundle_pct:.0f}% "
+          f"top10 {cfg.min_top10_holder_pct:.0f}-{cfg.max_top10_holder_pct:.0f}% bundle<={cfg.max_bundle_pct:.0f}% "
           f"holders>={cfg.min_holders} traders>={cfg.min_unique_buyers_h1}")
 
     # A single shakedown cycle would otherwise run before the websocket has

@@ -45,6 +45,8 @@ class Config:
     min_pair_age_minutes: float = 20.0     # let launch-block chaos settle first
     max_pair_age_minutes: float = 1_440.0  # only look at coins < 24h old
     max_top10_holder_pct: float = 30.0     # top 10 non-LP holders, % of supply
+    min_top10_holder_pct: float = 8.0      # BELOW this is fake-flat: one bag split across
+                                           # hundreds of wallets reads as "well distributed"
     max_single_holder_pct: float = 15.0    # any one non-LP wallet, % of supply
     min_lp_locked_pct: float = 80.0        # LP locked or burned, %
     max_insider_pct: float = 25.0          # RugCheck insider-network holdings, %

@@ -113,6 +113,24 @@ def check_safety(safety: SafetyReport, cfg: Config) -> tuple[Outcome, list[str]]
         fails.append(f"LP only {safety.lp_locked_pct:.0f}% locked/burned (< {cfg.min_lp_locked_pct:.0f}%)")
     if known(safety.top10_holder_pct, "top-10 holders") and safety.top10_holder_pct > cfg.max_top10_holder_pct:
         fails.append(f"top 10 wallets hold {safety.top10_holder_pct:.0f}% (> {cfg.max_top10_holder_pct:.0f}%)")
+    # Concentration cuts both ways. A minutes-old coin whose LARGEST holder
+    # owns a fraction of a percent is not "well distributed" — organic buying
+    # always mints a few conviction whales, and a distribution that flat is
+    # one operator's bag atomised across hundreds of wallets. Splitting wide
+    # also defeats the bundle trace arithmetically (12 wallets x ~0.2% can
+    # never reach the 20% kill line), which is exactly why it is done. On 39
+    # tracked alerts, every coin under this floor finished at -28% or worse
+    # and 22 of 23 lost 96%+; every survivor sat well above it.
+    # (known() already registered this field if missing — test the value
+    # directly so an unknown top-10 is not reported missing twice.)
+    if (
+        safety.top10_holder_pct is not None
+        and safety.top10_holder_pct < cfg.min_top10_holder_pct
+    ):
+        fails.append(
+            f"top 10 hold only {safety.top10_holder_pct:.1f}% (< {cfg.min_top10_holder_pct:.0f}%) — "
+            f"too flat to be organic; supply likely pre-split across bundled wallets"
+        )
     if (
         known(safety.max_single_holder_pct, "largest holder")
         and safety.max_single_holder_pct > cfg.max_single_holder_pct
